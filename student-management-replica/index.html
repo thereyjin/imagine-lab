@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>我的学生</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="phone" aria-label="我的学生">
+      <header class="header">
+        <div class="status-bar">
+          <span class="time">9:41</span>
+          <div class="system-icons" aria-hidden="true">
+            <span class="signal"><i></i><i></i><i></i><i></i></span>
+            <svg class="wifi" viewBox="0 0 28 20"><path d="M2 6.5C9.4.1 18.6.1 26 6.5M6.2 11c4.6-3.8 11-3.8 15.6 0M10.8 15.3c1.8-1.4 4.6-1.4 6.4 0M14 18h.01"/></svg>
+            <span class="battery"><i></i></span>
+          </div>
+        </div>
+        <div class="nav-bar">
+          <button class="back" aria-label="返回"><svg viewBox="0 0 24 40"><path d="M21 2 3 20l18 18"/></svg></button>
+          <h1>我的学生</h1>
+          <div class="capsule" aria-hidden="true">
+            <span class="dots"><i></i><i></i><i></i></span>
+            <span class="capsule-divider"></span>
+            <span class="mini-circle"><i></i></span>
+          </div>
+        </div>
+      </header>
+
+      <section class="sheet">
+        <nav class="tabs" aria-label="学生分类">
+          <button data-tab="all">全部学生</button>
+          <button class="active" data-tab="active">活跃学生</button>
+          <button data-tab="focus">重点关注</button>
+          <button data-tab="recent">近期开课</button>
+        </nav>
+
+        <section class="filters">
+          <button class="agent-filter">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V9l2-2 2 2 3-3 3 3 2-2 2 2v12M9 21v-6h6v6M4 7l3-4 5 3 5-3 3 4"/></svg>
+            <span>可以通过代理ID/名称搜索</span>
+            <i></i>
+          </button>
+
+          <label class="search">
+            <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="14" cy="14" r="10.5"/><path d="m22 22 7 7"/></svg>
+            <input id="searchInput" type="search" placeholder="请输入学员ID/姓名/电话号码" autocomplete="off" />
+          </label>
+        </section>
+
+        <p class="count"><span></span><b id="countText">965条</b><span></span></p>
+
+        <section class="student-list" id="studentList">
+          <article class="student-card" data-name="宋雨琦" data-id="207868" data-focus="true">
+            <div class="student-content">
+              <img src="./assets/avatar-1.png" alt="宋雨琦头像" />
+              <div class="student-info">
+                <h2>宋雨琦</h2>
+                <div class="student-id">ID: 207868</div>
+                <p><em>所属代理</em><strong>自己&amp;下级代理</strong></p>
+                <p><em>最近登录学习</em><strong>H5-Win | 2026-05-09</strong></p>
+                <p class="courses"><em>正在学习(21)</em><strong>中考语文、中考数学、…</strong><small>详情ⓘ</small></p>
+              </div>
+            </div>
+            <footer>
+              <button class="focus-button focused"><span class="star">☆</span><span class="focus-label">取消关注</span></button>
+              <i></i>
+              <button class="detail-button"><span class="file-icon">▤</span>查看详情</button>
+            </footer>
+          </article>
+
+          <article class="student-card" data-name="宋雨琦" data-id="205762" data-focus="false">
+            <div class="student-content">
+              <img src="./assets/avatar-2.png" alt="宋雨琦头像" />
+              <div class="student-info">
+                <h2>宋雨琦</h2>
+                <div class="student-id">ID: 205762</div>
+                <p><em>所属代理</em><strong>自己</strong></p>
+                <p><em>最近登录学习</em><strong>PC|1.2.65 | 2027-07-01</strong></p>
+                <p class="courses"><em>正在学习(10)</em><strong>中考语文、中考数学、…</strong><small>详情ⓘ</small></p>
+              </div>
+            </div>
+            <footer>
+              <button class="focus-button"><span class="star">☆</span><span class="focus-label">关注学生</span></button>
+              <i></i>
+              <button class="detail-button"><span class="file-icon">▤</span>查看详情</button>
+            </footer>
+          </article>
+        </section>
+
+        <p class="empty" id="emptyState">没有找到匹配的学生</p>
+      </section>
+      <div class="toast" id="toast" role="status"></div>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>

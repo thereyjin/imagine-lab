@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <style>path{fill:none;stroke:#00A2C7;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}@keyframes draw{from{visibility:visible}to{visibility:visible;stroke-dashoffset:0}}</style>
+  <filter id="boil" x="-30%" y="-30%" width="160%" height="160%"><feTurbulence type="fractalNoise" baseFrequency=".055" numOctaves="2" seed="1" result="noise"><animate attributeName="seed" values="1;2;3;4;5;6" dur=".86s" repeatCount="indefinite" calcMode="discrete"/></feTurbulence><feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G"/></filter>
+  <g filter="url(#boil)"><path pathLength="1" style="stroke-dasharray:1;stroke-dashoffset:1;visibility:hidden;animation:draw .7s cubic-bezier(.65,.05,.36,1) forwards" d="M24 8.5C32.8 8.5 39.5 15.2 39.5 24S32.8 39.5 24 39.5 8.5 32.8 8.5 24 15.2 8.5 24 8.5Z"/><path d="M18.5 20h.01M29.5 20h.01M16.5 27.5c2.5 3.5 5.5 5.1 8 5 3-.1 5.7-1.9 7.3-4.7"/></g>
+</svg>

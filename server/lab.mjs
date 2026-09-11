@@ -87,7 +87,7 @@ async function github(repo,ref){
   });
   catalog={ok:true,commit:commit.sha,url:`https://github.com/${repo}/commit/${commit.sha}`,components};return catalog;
 }
-const types={'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.json':'application/json','.md':'text/plain; charset=utf-8'};
+const types={'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.json':'application/json','.md':'text/plain; charset=utf-8'};
 const server=http.createServer(async(req,res)=>{
   try{
     // Local only; reject cross-origin writes and DNS rebinding.

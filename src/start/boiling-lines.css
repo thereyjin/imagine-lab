@@ -42,6 +42,11 @@ footer .project-note-body p{margin:10px 0}
 .project-note-body code{display:block;padding:10px 0;border-top:1px solid #efefec;border-bottom:1px solid #efefec;overflow-wrap:anywhere;font:12px/1.7 ui-monospace,monospace;color:#484b44;user-select:all}
 footer .project-note-body .project-note-help{margin-bottom:0;color:#85877e}
 .stage-idle .character{left:0}
+.idle-sprite{position:absolute;inset:0;width:100%;height:100%;background-position:0 0;background-repeat:no-repeat}
+.idle-sprite.motion-blink{background-image:url('/mascot/idle-blink-sheet.png');background-size:800% 100%;animation:idle-blink-frames 2.25s steps(7,end) 1}
+.idle-sprite.motion-gesture{background-image:url('/mascot/idle-gesture-sheet.png');background-size:1200% 100%;animation:idle-gesture-frames 2.35s steps(11,end) 1}
+@keyframes idle-blink-frames{from{background-position:0 0}to{background-position:100% 0}}
+@keyframes idle-gesture-frames{from{background-position:0 0}to{background-position:100% 0}}
 .thinking-sprite{position:absolute;left:0;bottom:0;width:100%;height:125%;background-image:url('/mascot/thinking-sheet.png');background-size:1200% 100%;background-repeat:no-repeat;animation:thinking-frames 2.2s steps(11,end) forwards}
 @keyframes thinking-frames{from{background-position:0 0}to{background-position:100% 0}}
 .doodle-start{position:absolute;left:calc(100% - 12px);bottom:2px;width:116px;height:88px;padding:0;border:0;background:none;box-shadow:none;color:#202a33;isolation:isolate}

@@ -20,23 +20,19 @@ function App(){
   const [pending,setPending]=useState<Stage>('waiting');
   const [details,setDetails]=useState(false);
   const [reduced,setReduced]=useState(false);
-  const [frame,setFrame]=useState(0);
+  const [idleMotion,setIdleMotion]=useState<'blink-one'|'blink-two'|'gesture'>('blink-one');
   const [notice,setNotice]=useState('');
   const [catalog,setCatalog]=useState<Report|null>(null);
   const [timelineStep,setTimelineStep]=useState(0);
   const manualRef=useRef<HTMLTextAreaElement>(null);
   const active=useRef(false);
-  useEffect(()=>{[0,1,2].forEach(n=>{const image=new Image();image.src=`/mascot/idle-${String(n).padStart(2,'0')}.png`;});const thinking=new Image();thinking.src='/mascot/thinking-sheet.png';},[]);
+  useEffect(()=>{['/mascot/idle-blink-sheet.png','/mascot/idle-gesture-sheet.png','/mascot/thinking-sheet.png'].forEach(src=>{const image=new Image();image.src=src;});},[]);
   useEffect(()=>{fetch('/api/lab/catalog').then(r=>r.json()).then(d=>{if(d.ok)setCatalog(d);}).catch(()=>{});},[]);
   useEffect(()=>{fetch('/api/lab/context').then(r=>r.json()).then(d=>setRoot(d.root||'')).catch(()=>{});const q=matchMedia('(prefers-reduced-motion: reduce)');setReduced(q.matches);const change=()=>setReduced(q.matches);q.addEventListener('change',change);return()=>q.removeEventListener('change',change);},[]);
   useEffect(()=>{try{localStorage.setItem('imagine-v1',JSON.stringify({repo,branch}));}catch{/* Optional storage. */}},[stage,repo,branch]);
   useEffect(()=>{if(stage==='prepare'){const id=setTimeout(()=>setStage('paper'),reduced?0:2600);return()=>clearTimeout(id);}if(stage==='handoff'){const id=setTimeout(()=>setStage('waiting'),reduced?300:1400);return()=>clearTimeout(id);}},[stage,reduced]);
   useEffect(()=>{const steps:Partial<Record<Stage,number>>={idle:0,paper:1,handoff:2,checking:3,fix:3,pass:4,github:4,syncing:4,done:4,catalog:5};const step=steps[stage];if(step!==undefined)setTimelineStep(step);},[stage]);
-  useEffect(()=>{
-    setFrame(0);if(reduced||!['idle','waiting'].includes(stage))return;
-    const frames=[0,1,0,2,0,1,0],timing=[2000,110,1450,470,1600,120,1200];let index=0, timer:ReturnType<typeof setTimeout>;
-    const tick=()=>{timer=setTimeout(()=>{index=(index+1)%frames.length;setFrame(frames[index]);tick();},timing[index]);};tick();return()=>clearTimeout(timer);
-  },[stage,reduced]);
+  useEffect(()=>{if(stage==='idle')setIdleMotion('blink-one');},[stage]);
   async function copy(value:string,next:Stage){
     setError('');try{await navigator.clipboard.writeText(value);setManual('');setNotice('已复制');setStage(next);}catch{setManual(value);setPending(next);setError('自动复制未成功，选中下方文字手动复制。');requestAnimationFrame(()=>{manualRef.current?.focus();manualRef.current?.select();});}
   }
@@ -68,7 +64,7 @@ function App(){
       {stage!=='catalog'&&<>
         <div className="speech-area" aria-live="polite">{stage==='idle'?<a href="/" className="brand hero-brand" aria-label="Imagine Lab 首页"><img className="hero-brand-mark boil-logo" src="/imagine/brand-mark.png" alt="" aria-hidden="true"/><span className="brand-wordmark boil-logo">imagine lab<span>.</span></span></a>:<span className="hero-brand-spacer" aria-hidden="true"/>}<h1 key={stage} className="speech">{stage==='prepare'?<span className="ink-dots" aria-label="准备整理规则"><i/><i/><i/></span>:stage==='idle'?<span className="idle-title"><img src="/imagine/smile.svg" alt="" aria-hidden="true"/><span className="boil-copy">{text.idle}</span><img src="/imagine/pencil.svg" alt="" aria-hidden="true"/></span>:<span className="boil-copy">{stage==='fix'?(fix.length>65?'有一点要补齐。':fix):stage==='pass'&&!report?.ok?'完成检查后，就可以用了。':text[stage]}</span>}</h1></div>
         <div className={'character '+(['idle','waiting'].includes(stage)?'breathing':'')}>
-          {stage==='prepare'?<span className="thinking-sprite boil-character" role="img" aria-label="小人正在想下一步"/>:<img className="boil-character" width="336" height="304" src={`/mascot/idle-${String(frame).padStart(2,'0')}.png`} alt="戴着帽子和圆眼镜的小人"/>}
+          {stage==='prepare'?<span className="thinking-sprite boil-character" role="img" aria-label="小人正在想下一步"/>:stage==='idle'?<span key={idleMotion} className={`idle-sprite ${idleMotion==='gesture'?'motion-gesture':'motion-blink'} boil-character`} role="img" aria-label="戴着帽子和圆眼镜的小人" onAnimationEnd={()=>{if(!reduced)setIdleMotion(value=>value==='blink-one'?'blink-two':value==='blink-two'?'gesture':'blink-one');}}/>:<img className="boil-character" width="336" height="304" src="/mascot/idle-00.png" alt="戴着帽子和圆眼镜的小人"/>}
           {stage==='idle'&&<button className="doodle-start" onClick={()=>setStage('prepare')} aria-label="开始">
             <img className="doodle-start-art boil-character" src="/mascot/start-button.png" alt="" aria-hidden="true"/>
             <span className="doodle-start-label boil-copy">开始</span>

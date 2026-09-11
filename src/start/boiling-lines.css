@@ -44,9 +44,23 @@ footer .project-note-body .project-note-help{margin-bottom:0;color:#85877e}
 .stage-idle .character{left:0}
 .idle-sprite{position:absolute;inset:0;width:100%;height:100%;background-position:0 0;background-repeat:no-repeat}
 .idle-sprite.motion-blink{background-image:url('/mascot/idle-blink-sheet.png');background-size:800% 100%;animation:idle-blink-frames 2.25s steps(7,end) 1}
-.idle-sprite.motion-gesture{background-image:url('/mascot/idle-gesture-sheet.png');background-size:1200% 100%;animation:idle-gesture-frames 2.35s steps(11,end) 1}
+.idle-sprite.motion-rest{background-image:url('/mascot/idle-blink-sheet.png');background-size:800% 100%}
+.idle-sprite.motion-gesture{background-image:url('/mascot/idle-gesture-sheet.png');background-size:1200% 100%;animation:idle-gesture-frames 2.35s step-end 1}
 @keyframes idle-blink-frames{from{background-position:0 0}to{background-position:100% 0}}
-@keyframes idle-gesture-frames{from{background-position:0 0}to{background-position:100% 0}}
+@keyframes idle-gesture-frames{
+  0%{background-position:0 0}
+  8.33%{background-position:9.0909% 0}
+  16.67%{background-position:18.1818% 0}
+  25%{background-position:27.2727% 0}
+  33.33%{background-position:36.3636% 0}
+  41.67%{background-position:45.4545% 0}
+  50%{background-position:54.5455% 0}
+  58.33%{background-position:63.6364% 0}
+  63.45%{background-position:72.7273% 0}
+  67.7%{background-position:81.8182% 0}
+  71.96%{background-position:90.9091% 0}
+  76.22%{background-position:100% 0}
+}
 .thinking-sprite{position:absolute;left:0;bottom:0;width:100%;height:125%;background-image:url('/mascot/thinking-sheet.png');background-size:1200% 100%;background-repeat:no-repeat;animation:thinking-frames 2.2s steps(11,end) forwards}
 @keyframes thinking-frames{from{background-position:0 0}to{background-position:100% 0}}
 .doodle-start{position:absolute;left:calc(100% - 12px);bottom:2px;width:116px;height:88px;padding:0;border:0;background:none;box-shadow:none;color:#202a33;isolation:isolate}

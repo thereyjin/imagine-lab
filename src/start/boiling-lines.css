@@ -10,7 +10,8 @@
 .speech .boil-copy{display:inline-block}
 header{justify-content:flex-end}
 .speech-area{flex-direction:column}
-.hero-brand{display:inline-flex;align-items:center;justify-content:center;gap:8px;margin:0 0 32px;font-size:20px;letter-spacing:-1px;transform:none;line-height:1;text-align:center}
+.speech-area{min-height:104px;height:104px;overflow:visible}
+.hero-brand{display:inline-flex;align-items:center;justify-content:center;gap:8px;margin:0 0 24px;font-size:20px;letter-spacing:-1px;transform:none;line-height:1;text-align:center}
 .hero-brand-spacer{display:block;width:1px;height:25px;margin:0 0 32px;flex:0 0 auto}
 .project-help{position:relative;z-index:20}
 .project-help>button{display:grid;place-items:center;width:38px;height:38px;padding:0;border:0;background:none}
@@ -23,6 +24,7 @@ header nav{gap:14px;align-items:center}
 .timeline-rail{height:205px}
 .hero-brand-mark{display:block;width:auto;height:25px;object-fit:contain}
 .stage-idle .speech{font-size:48px;font-weight:400;max-width:none}
+.stage-idle .speech-area{position:relative;top:14px}
 .idle-title{display:flex;align-items:center;justify-content:center;gap:0;white-space:nowrap}
 .idle-title img{display:block;width:1em;height:1em;flex:0 0 auto;transform:translate(-4px,.02em)}
 .idle-title img:first-child{margin-right:-.16em}
@@ -41,7 +43,7 @@ footer .project-note{position:relative;max-width:none;text-align:left;flex-shrin
 footer .project-note-body p{margin:10px 0}
 .project-note-body code{display:block;padding:10px 0;border-top:1px solid #efefec;border-bottom:1px solid #efefec;overflow-wrap:anywhere;font:12px/1.7 ui-monospace,monospace;color:#484b44;user-select:all}
 footer .project-note-body .project-note-help{margin-bottom:0;color:#85877e}
-.stage-idle .character{left:0}
+.scene .character{align-self:center;left:auto;right:auto;flex:0 0 auto;top:24px}
 .idle-sprite{position:absolute;inset:0;width:100%;height:100%;background-position:0 0;background-repeat:no-repeat}
 .idle-sprite.motion-blink{background-image:url('/mascot/idle-blink-sheet.png');background-size:800% 100%;animation:idle-blink-frames 2.25s steps(7,end) 1}
 .idle-sprite.motion-rest{background-image:url('/mascot/idle-blink-sheet.png');background-size:800% 100%}
@@ -63,6 +65,48 @@ footer .project-note-body .project-note-help{margin-bottom:0;color:#85877e}
 }
 .thinking-sprite{position:absolute;left:0;bottom:0;width:100%;height:125%;background-image:url('/mascot/thinking-sheet.png');background-size:1200% 100%;background-repeat:no-repeat;animation:thinking-frames 2.2s steps(11,end) forwards}
 @keyframes thinking-frames{from{background-position:0 0}to{background-position:100% 0}}
+.thinking2-sprite{position:absolute;left:0;bottom:0;width:100%;height:125%;background-image:url('/mascot/thinking2-sheet.png');background-size:1600% 100%;background-repeat:no-repeat;animation:thinking2-frames 1.6s steps(15,end) 1 forwards}
+@keyframes thinking2-frames{from{background-position:0 0}to{background-position:100% 0}}
+.react-sprite{position:absolute;left:0;bottom:0;width:100%;height:125%;background-image:url('/mascot/react-sheet.png');background-size:1200% 100%;background-repeat:no-repeat;animation:react-frames 1.5s step-end 1 forwards}
+/* Zero-based cells 3–4 have doubled bubbles; cell 5 has a doubled body.
+   Hold cell 2, then use the clean reaction in cell 6 for both reaction slots. */
+@keyframes react-frames{
+  0%{background-position:0 2px}
+  9.0909%{background-position:9.090909% 2px}
+  18.1818%{background-position:18.181818% 2px}
+  45.4545%{background-position:54.545455% 2px}
+  54.5455%{background-position:54.545455% 2px}
+  63.6364%{background-position:63.636364% 2px}
+  72.7273%{background-position:72.727273% 2px}
+  81.8182%{background-position:81.818182% 2px}
+  90.9091%{background-position:90.909091% 2px}
+  100%{background-position:100% 2px}
+}
+.peace-sprite{position:absolute;left:0;bottom:0;width:100%;height:125%;background-image:url('/mascot/peace-sheet.png');background-size:1200% 100%;background-repeat:no-repeat;animation:peace-loop 6.3s step-end infinite}
+@keyframes peace-loop{
+  0%{background-position:0 0}
+  1.4%{background-position:9.0909% 0}
+  2.7%{background-position:18.1818% 0}
+  4.8%{background-position:27.2727% 0}
+  5.3%{background-position:36.3636% 0}
+  7.4%{background-position:45.4545% 0}
+  9.4%{background-position:54.5455% 0}
+  11.5%{background-position:63.6364% 0}
+  12.9%{background-position:72.7273% 0}
+  13.1%{background-position:81.8182% 0}
+  13.7%{background-position:90.9091% 0}
+  13.9%{background-position:100% 0}
+  100%{background-position:100% 0}
+}
+.doodle-start.leaving{pointer-events:none;animation:start-shrink .32s cubic-bezier(.55,-.35,.7,.3) forwards}
+@keyframes start-shrink{0%{transform:scale(1);opacity:1}35%{transform:scale(1.08);opacity:1}100%{transform:scale(0);opacity:0}}
+@keyframes elastic-pop{0%{transform:scale(0);opacity:0}55%{transform:scale(1.12);opacity:1}75%{transform:scale(.95)}100%{transform:scale(1);opacity:1}}
+.pop-in{animation:elastic-pop .45s cubic-bezier(.2,.9,.3,1.1) both}
+.pop-in-late{animation:elastic-pop .45s cubic-bezier(.2,.9,.3,1.1) .12s both}
+.doodle-confirm{position:relative;width:206px;height:78px;padding:0;border:0;background:none;box-shadow:none;color:#202a33;isolation:isolate}
+.character .doodle-confirm-art,.doodle-confirm .doodle-confirm-art{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none}
+.doodle-confirm-label{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);line-height:1;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;font-size:15px;letter-spacing:1.5px;pointer-events:none;white-space:nowrap}
+.doodle-confirm:hover .doodle-confirm-label{color:#000}
 .doodle-start{position:absolute;left:calc(100% - 12px);bottom:2px;width:116px;height:88px;padding:0;border:0;background:none;box-shadow:none;color:#202a33;isolation:isolate}
 .character .doodle-start-art{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none}
 .doodle-start-label{position:absolute;left:0;right:0;top:55%;margin-top:-12px;line-height:24px;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;font-size:18px;letter-spacing:3px;padding-left:3px;pointer-events:none}

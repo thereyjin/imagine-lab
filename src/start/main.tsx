@@ -21,20 +21,24 @@ function App(){
   const [details,setDetails]=useState(false);
   const [reduced,setReduced]=useState(false);
   const [idleMotion,setIdleMotion]=useState<'blink-one'|'blink-two'|'rest'|'gesture'>('blink-one');
+  const [leaving,setLeaving]=useState(false);
+  const [paperUI,setPaperUI]=useState(false);
+  const [paperMotion,setPaperMotion]=useState<'react'|'peace'>('react');
+  const paperWait=useRef<number|undefined>(undefined);
   const [notice,setNotice]=useState('');
   const [catalog,setCatalog]=useState<Report|null>(null);
   const [timelineStep,setTimelineStep]=useState(0);
   const manualRef=useRef<HTMLTextAreaElement>(null);
   const active=useRef(false);
   const blinkPause=useRef<number|undefined>(undefined);
-  useEffect(()=>()=>window.clearTimeout(blinkPause.current),[]);
-  useEffect(()=>{['/mascot/idle-blink-sheet.png','/mascot/idle-gesture-sheet.png','/mascot/thinking-sheet.png'].forEach(src=>{const image=new Image();image.src=src;});},[]);
+  useEffect(()=>()=>{window.clearTimeout(blinkPause.current);window.clearTimeout(paperWait.current);},[]);
+  useEffect(()=>{['/mascot/idle-blink-sheet.png','/mascot/idle-gesture-sheet.png','/mascot/thinking2-sheet.png','/mascot/react-sheet.png','/mascot/peace-sheet.png'].forEach(src=>{const image=new Image();image.src=src;});},[]);
   useEffect(()=>{fetch('/api/lab/catalog').then(r=>r.json()).then(d=>{if(d.ok)setCatalog(d);}).catch(()=>{});},[]);
   useEffect(()=>{fetch('/api/lab/context').then(r=>r.json()).then(d=>setRoot(d.root||'')).catch(()=>{});const q=matchMedia('(prefers-reduced-motion: reduce)');setReduced(q.matches);const change=()=>setReduced(q.matches);q.addEventListener('change',change);return()=>q.removeEventListener('change',change);},[]);
   useEffect(()=>{try{localStorage.setItem('imagine-v1',JSON.stringify({repo,branch}));}catch{/* Optional storage. */}},[stage,repo,branch]);
-  useEffect(()=>{if(stage==='prepare'){const id=setTimeout(()=>setStage('paper'),reduced?0:2600);return()=>clearTimeout(id);}if(stage==='handoff'){const id=setTimeout(()=>setStage('waiting'),reduced?300:1400);return()=>clearTimeout(id);}},[stage,reduced]);
+  useEffect(()=>{if(stage==='prepare'){const id=setTimeout(()=>setStage('paper'),reduced?0:1650);return()=>clearTimeout(id);}if(stage==='handoff'){const id=setTimeout(()=>setStage('waiting'),reduced?300:1400);return()=>clearTimeout(id);}if(stage==='paper'){setPaperUI(false);setPaperMotion('react');const id=setTimeout(()=>setPaperUI(true),reduced?0:900);return()=>clearTimeout(id);}},[stage,reduced]);
   useEffect(()=>{const steps:Partial<Record<Stage,number>>={idle:0,paper:1,handoff:2,checking:3,fix:3,pass:4,github:4,syncing:4,done:4,catalog:5};const step=steps[stage];if(step!==undefined)setTimelineStep(step);},[stage]);
-  useEffect(()=>{if(stage==='idle')setIdleMotion('blink-one');else window.clearTimeout(blinkPause.current);},[stage]);
+  useEffect(()=>{if(stage==='idle')setIdleMotion('blink-one');else{window.clearTimeout(blinkPause.current);setLeaving(false);}if(stage!=='paper')window.clearTimeout(paperWait.current);},[stage]);
   async function copy(value:string,next:Stage){
     setError('');try{await navigator.clipboard.writeText(value);setManual('');setNotice('已复制');setStage(next);}catch{setManual(value);setPending(next);setError('自动复制未成功，选中下方文字手动复制。');requestAnimationFrame(()=>{manualRef.current?.focus();manualRef.current?.select();});}
   }
@@ -64,10 +68,10 @@ function App(){
     <header><nav>{catalog&&<button className="text-button" onClick={()=>{setReport(catalog);setStage('catalog');setError('');setNotice('');}}>组件目录</button>}<a className="quiet-link rules-link" href="/imagine/rules.md" target="_blank" rel="noreferrer"><span className="rules-link-paper boil-slogan" aria-hidden="true"/><span className="rules-link-label boil-slogan">整理规则 ↗</span></a><div className="project-help"><button type="button" aria-label="当前项目说明"><img src="/timeline/circle-question-mark.svg" alt=""/></button><div className="project-note-body"><strong>{root?'组件会整理到这里':'还没有连接项目'}</strong><p>{root?'AI 会把组件代码放进这个项目，Imagine Lab 会在这里检查文件是否齐全。':'请让帮你启动 Imagine Lab 的 AI 连接本地项目，再继续整理。'}</p>{root&&<code>{root}</code>}<p className="project-note-help">{root?'平时不用修改。要换项目？告诉 AI 你想使用哪个文件夹，请它切换后重新启动预览。':'连接成功后，这里会显示项目文件夹。'}</p></div></div></nav></header>
     <main className={'scene stage-'+stage} aria-busy={working}>
       {stage!=='catalog'&&<>
-        <div className="speech-area" aria-live="polite">{stage==='idle'?<a href="/" className="brand hero-brand" aria-label="Imagine Lab 首页"><img className="hero-brand-mark boil-logo" src="/imagine/brand-mark.png" alt="" aria-hidden="true"/><span className="brand-wordmark boil-logo">imagine lab<span>.</span></span></a>:<span className="hero-brand-spacer" aria-hidden="true"/>}<h1 key={stage} className="speech">{stage==='prepare'?<span className="ink-dots" aria-label="准备整理规则"><i/><i/><i/></span>:stage==='idle'?<span className="idle-title"><img src="/imagine/smile.svg" alt="" aria-hidden="true"/><span className="boil-copy">{text.idle}</span><img src="/imagine/pencil.svg" alt="" aria-hidden="true"/></span>:<span className="boil-copy">{stage==='fix'?(fix.length>65?'有一点要补齐。':fix):stage==='pass'&&!report?.ok?'完成检查后，就可以用了。':text[stage]}</span>}</h1></div>
+        <div className="speech-area" aria-live="polite">{stage==='idle'?<a href="/" className="brand hero-brand" aria-label="Imagine Lab 首页"><img className="hero-brand-mark boil-logo" src="/imagine/brand-mark.png" alt="" aria-hidden="true"/><span className="brand-wordmark boil-logo">imagine lab<span>.</span></span></a>:<span className="hero-brand-spacer" aria-hidden="true"/>}<h1 key={stage} className="speech">{stage==='prepare'?<span className="ink-dots" aria-label="准备整理规则"><i/><i/><i/></span>:stage==='paper'?<span key={paperUI?'paper-text':'paper-wait'} className={paperUI?'boil-copy pop-in':'ink-dots'} aria-label={paperUI?undefined:'准备整理规则'}>{paperUI?text.paper:<><i/><i/><i/></>}</span>:stage==='idle'?<span className="idle-title"><img src="/imagine/smile.svg" alt="" aria-hidden="true"/><span className="boil-copy">{text.idle}</span><img src="/imagine/pencil.svg" alt="" aria-hidden="true"/></span>:<span className="boil-copy">{stage==='fix'?(fix.length>65?'有一点要补齐。':fix):stage==='pass'&&!report?.ok?'完成检查后，就可以用了。':text[stage]}</span>}</h1></div>
         <div className={'character '+(['idle','waiting'].includes(stage)?'breathing':'')}>
-          {stage==='prepare'?<span className="thinking-sprite boil-character" role="img" aria-label="小人正在想下一步"/>:stage==='idle'?<span key={idleMotion} className={`idle-sprite ${idleMotion==='gesture'?'motion-gesture':idleMotion==='rest'?'motion-rest':'motion-blink'} boil-character`} role="img" aria-label="戴着帽子和圆眼镜的小人" onAnimationEnd={()=>{if(reduced)return;if(idleMotion==='blink-one'){setIdleMotion('rest');blinkPause.current=window.setTimeout(()=>setIdleMotion('blink-two'),2500);}else if(idleMotion==='blink-two'){setIdleMotion('gesture');}else{setIdleMotion('blink-one');}}}/>:<img className="boil-character" width="336" height="304" src="/mascot/idle-00.png" alt="戴着帽子和圆眼镜的小人"/>}
-          {stage==='idle'&&<button className="doodle-start" onClick={()=>setStage('prepare')} aria-label="开始">
+          {stage==='prepare'?<span className="thinking2-sprite boil-character" role="img" aria-label="小人正在想下一步"/>:stage==='paper'?(paperMotion==='peace'?<span key="peace" className="peace-sprite boil-character" role="img" aria-label="小人比了个剪刀手"/>:<span key="react" className="react-sprite boil-character" role="img" aria-label="小人想出了主意" onAnimationEnd={()=>{if(!reduced){paperWait.current=window.setTimeout(()=>setPaperMotion('peace'),2000);}}}/>):stage==='idle'?<span key={idleMotion} className={`idle-sprite ${idleMotion==='gesture'?'motion-gesture':idleMotion==='rest'?'motion-rest':'motion-blink'} boil-character`} role="img" aria-label="戴着帽子和圆眼镜的小人" onAnimationEnd={()=>{if(reduced)return;if(idleMotion==='blink-one'){setIdleMotion('rest');blinkPause.current=window.setTimeout(()=>setIdleMotion('blink-two'),2500);}else if(idleMotion==='blink-two'){setIdleMotion('gesture');}else{setIdleMotion('blink-one');}}}/>:<img className="boil-character" width="336" height="304" src="/mascot/idle-00.png" alt="戴着帽子和圆眼镜的小人"/>}
+          {stage==='idle'&&<button className={'doodle-start'+(leaving?' leaving':'')} onClick={()=>{if(leaving)return;setLeaving(true);window.setTimeout(()=>setStage('prepare'),320);}} aria-label="开始">
             <img className="doodle-start-art boil-character" src="/mascot/start-button.png" alt="" aria-hidden="true"/>
             <span className="doodle-start-label boil-copy">开始</span>
           </button>}
@@ -76,7 +80,10 @@ function App(){
           {(stage==='done'||(stage==='pass'&&report?.ok))&&<span className="parcel" aria-hidden="true">▧</span>}
         </div>
         <div className="actions">
-          {stage==='paper'&&<><button className="primary" onClick={startCopy}>选好了，复制给 AI <span>↗</span></button><p className="hint">粘贴到已连接 Paper 的 AI 对话里。</p></>}
+          {stage==='paper'&&paperUI&&<><button className="doodle-confirm pop-in" onClick={startCopy} aria-label="选好了，复制给 AI">
+            <img className="doodle-confirm-art boil-character" src="/mascot/start-button.png" alt="" aria-hidden="true"/>
+            <span className="doodle-confirm-label boil-copy">选好了，复制给 AI</span>
+          </button><p className="hint pop-in-late">粘贴到已连接 Paper 的 AI 对话里。</p></>}
           {stage==='handoff'&&<p className="hint">已复制</p>}
           {stage==='waiting'&&<><button className="primary" onClick={()=>void request('check')}>检查一下 <span>→</span></button><button className="text-button" onClick={()=>setStage('idle')}>稍后</button><p className="hint">检查本地文件与编译，不读取 AI 对话。</p></>}
           {stage==='checking'&&<p className="hint">正在验证代码、依赖和示例构建，请稍候。</p>}

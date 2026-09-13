@@ -5,6 +5,7 @@
 .boil-copy{filter:url('#imagine-boil-copy')}
 .boil-slogan{filter:url('#imagine-boil-slogan')}
 .boil-character{filter:url('#imagine-boil-character')}
+.boil-scene{filter:url('#imagine-boil-scene')}
 .boil-timeline{filter:url('#imagine-boil-timeline')}
 .brand .brand-wordmark{display:inline-block;color:inherit}
 .speech .boil-copy{display:inline-block}
@@ -44,6 +45,7 @@ footer .project-note-body p{margin:10px 0}
 .project-note-body code{display:block;padding:10px 0;border-top:1px solid #efefec;border-bottom:1px solid #efefec;overflow-wrap:anywhere;font:12px/1.7 ui-monospace,monospace;color:#484b44;user-select:all}
 footer .project-note-body .project-note-help{margin-bottom:0;color:#85877e}
 .scene .character{align-self:center;left:auto;right:auto;flex:0 0 auto;top:24px}
+.character .idle-scene-art{position:absolute;z-index:0;left:50%;bottom:-4px;width:620px;height:auto;max-width:none;opacity:.4;transform:translateX(-50%);object-fit:contain;pointer-events:none}
 .idle-sprite{position:absolute;inset:0;width:100%;height:100%;background-position:0 0;background-repeat:no-repeat}
 .idle-sprite.motion-blink{background-image:url('/mascot/idle-blink-sheet.png');background-size:800% 100%;animation:idle-blink-frames 2.25s steps(7,end) 1}
 .idle-sprite.motion-rest{background-image:url('/mascot/idle-blink-sheet.png');background-size:800% 100%}
@@ -63,11 +65,11 @@ footer .project-note-body .project-note-help{margin-bottom:0;color:#85877e}
   71.96%{background-position:90.9091% 0}
   76.22%{background-position:100% 0}
 }
-.thinking-sprite{position:absolute;left:0;bottom:0;width:100%;height:125%;background-image:url('/mascot/thinking-sheet.png');background-size:1200% 100%;background-repeat:no-repeat;animation:thinking-frames 2.2s steps(11,end) forwards}
+.thinking-sprite{position:absolute;left:50%;bottom:3px;width:98.5%;height:123.125%;transform:translateX(-50%);background-image:url('/mascot/thinking-sheet.png');background-size:1200% 100%;background-repeat:no-repeat;animation:thinking-frames 2.2s steps(11,end) forwards}
 @keyframes thinking-frames{from{background-position:0 0}to{background-position:100% 0}}
-.thinking2-sprite{position:absolute;left:0;bottom:0;width:100%;height:125%;background-image:url('/mascot/thinking2-sheet.png');background-size:1600% 100%;background-repeat:no-repeat;animation:thinking2-frames 1.6s steps(15,end) 1 forwards}
+.thinking2-sprite{position:absolute;left:50%;bottom:3px;width:98.5%;height:123.125%;transform:translateX(-50%);background-image:url('/mascot/thinking2-sheet.png');background-size:1600% 100%;background-repeat:no-repeat;animation:thinking2-frames 1.6s steps(15,end) 1 forwards}
 @keyframes thinking2-frames{from{background-position:0 0}to{background-position:100% 0}}
-.react-sprite{position:absolute;left:0;bottom:0;width:100%;height:125%;background-image:url('/mascot/react-sheet.png');background-size:1200% 100%;background-repeat:no-repeat;animation:react-frames 1.5s step-end 1 forwards}
+.react-sprite{position:absolute;left:50%;bottom:3px;width:98.5%;height:123.125%;transform:translateX(-50%);background-image:url('/mascot/react-sheet.png');background-size:1200% 100%;background-repeat:no-repeat;animation:react-frames 1.5s step-end 1 forwards}
 /* Zero-based cells 3–4 have doubled bubbles; cell 5 has a doubled body.
    Hold cell 2, then use the clean reaction in cell 6 for both reaction slots. */
 @keyframes react-frames{
@@ -82,7 +84,7 @@ footer .project-note-body .project-note-help{margin-bottom:0;color:#85877e}
   90.9091%{background-position:90.909091% 2px}
   100%{background-position:100% 2px}
 }
-.peace-sprite{position:absolute;left:0;bottom:0;width:100%;height:125%;background-image:url('/mascot/peace-sheet.png');background-size:1200% 100%;background-repeat:no-repeat;animation:peace-loop 6.3s step-end infinite}
+.peace-sprite{position:absolute;left:50%;bottom:3px;width:98.5%;height:123.125%;transform:translateX(-50%);background-image:url('/mascot/peace-sheet.png');background-size:1200% 100%;background-repeat:no-repeat;animation:peace-loop 6.3s step-end infinite}
 @keyframes peace-loop{
   0%{background-position:0 0}
   1.4%{background-position:9.0909% 0}
@@ -119,5 +121,5 @@ footer .project-note-body .project-note-help{margin-bottom:0;color:#85877e}
 /* Keep functional surfaces physically stationary, including hover/press. */
 .actions .primary:hover,.actions .primary:active{transform:none;box-shadow:0 2px 0 #353d2e}
 @media(prefers-reduced-motion:reduce){
-  .boil-logo,.boil-copy,.boil-slogan,.boil-character,.boil-timeline{filter:none}
+  .boil-logo,.boil-copy,.boil-slogan,.boil-character,.boil-scene,.boil-timeline{filter:none}
 }

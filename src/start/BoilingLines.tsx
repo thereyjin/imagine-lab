@@ -9,6 +9,7 @@ const presets = [
   {id:'copy', scale:4},
   {id:'slogan', scale:2},
   {id:'character', scale:3.2},
+  {id:'scene', scale:1.8},
   {id:'timeline', scale:1.5},
 ] as const;
 

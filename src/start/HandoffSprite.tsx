@@ -2,7 +2,7 @@ import React, {useEffect, useId, useState} from 'react';
 
 // Explicit source rectangles prevent the first frame's low paper from leaking
 // into the second row. Registration uses the feet, never the loose paper.
-const centers=[206.3,648.3,1072.8,1499.1,214,641.3,1064.6,1489.5,212,644.5,1065.8,1503];
+const centers=[211.1,648.8,1071.5,1496.9,213.1,642.3,1067.5,1488.7,210.5,643.8,1065.7,1503.9];
 const feet=[279,279,279,279,585,585,585,585,877,877,877,877];
 const columns=[0,426,852,1277,1703];
 const rows=[0,356,624,924];

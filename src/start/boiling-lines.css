@@ -125,9 +125,14 @@ footer .project-note-body .project-note-help{margin-bottom:0;color:#85877e}
   83.333%{background-position:66.667% 100%}
   91.667%,100%{background-position:100% 100%}
 }
-.handoff-registered{position:absolute;left:calc(50% + 4px);top:-7px;width:148%;height:auto;max-width:none;overflow:hidden;transform:translateX(-50%) scaleY(1.052);transform-origin:50% 64.2%;pointer-events:none}
-.stage-handoff .actions,.stage-waiting .actions{min-height:126px}
-.stage-handoff .actions>.hint{visibility:hidden}
+.handoff-registered{position:absolute;left:calc(50% + 7.5px);top:-7px;width:148%;height:auto;max-width:none;overflow:hidden;transform:translateX(-50%) scaleY(1.052);transform-origin:50% 64.2%;pointer-events:none}
+.stage-handoff .actions,.stage-waiting .actions{height:120px;min-height:120px;flex:none}
+.stage-paper .actions,.stage-waiting .actions{gap:16px}
+.stage-handoff .doodle-confirm,.stage-waiting .doodle-confirm{width:196px;height:78px;flex:none}
+.stage-handoff .doodle-confirm-art,.stage-waiting .doodle-confirm-art{left:5px;right:5px;width:calc(100% - 10px)}
+.stage-paper .doodle-confirm-label,.stage-handoff .doodle-confirm-label,.stage-waiting .doodle-confirm-label{transform:translateY(calc(-50% + 4px))}
+.stage-paper .actions>.hint{position:relative;top:-12px}
+.stage-waiting .hint{transform:translateY(-12px)}
 .doodle-start{position:absolute;left:calc(100% - 12px);bottom:2px;width:116px;height:88px;padding:0;border:0;background:none;box-shadow:none;color:#202a33;isolation:isolate}
 .character .doodle-start-art{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none}
 .doodle-start-label{position:absolute;left:0;right:0;top:55%;margin-top:-12px;line-height:24px;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;font-size:18px;letter-spacing:3px;padding-left:3px;pointer-events:none}

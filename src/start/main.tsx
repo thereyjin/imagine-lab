@@ -27,6 +27,7 @@ function App(){
   const [paperBurst,setPaperBurst]=useState(false);
   const [paperMotion,setPaperMotion]=useState<'react'|'peace'>('react');
   const [handoffPlayed,setHandoffPlayed]=useState(false);
+  const [showCheckEarly,setShowCheckEarly]=useState(false);
   const paperWait=useRef<number|undefined>(undefined);
   const [notice,setNotice]=useState('');
   const [catalog,setCatalog]=useState<Report|null>(null);
@@ -39,7 +40,7 @@ function App(){
   useEffect(()=>{fetch('/api/lab/catalog').then(r=>r.json()).then(d=>{if(d.ok)setCatalog(d);}).catch(()=>{});},[]);
   useEffect(()=>{fetch('/api/lab/context').then(r=>r.json()).then(d=>setRoot(d.root||'')).catch(()=>{});const q=matchMedia('(prefers-reduced-motion: reduce)');setReduced(q.matches);const change=()=>setReduced(q.matches);q.addEventListener('change',change);return()=>q.removeEventListener('change',change);},[]);
   useEffect(()=>{try{localStorage.setItem('imagine-v1',JSON.stringify({repo,branch}));}catch{/* Optional storage. */}},[stage,repo,branch]);
-  useEffect(()=>{if(stage==='prepare'){const id=setTimeout(()=>setStage('paper'),reduced?0:1650);return()=>clearTimeout(id);}if(stage==='handoff'){const id=setTimeout(()=>setStage('waiting'),reduced?300:2600);return()=>clearTimeout(id);}if(stage==='paper'){setPaperUI(false);setPaperBurst(false);setPaperMotion('react');const id=setTimeout(()=>setPaperUI(true),reduced?0:900);return()=>clearTimeout(id);}},[stage,reduced]);
+  useEffect(()=>{if(stage==='prepare'){const id=setTimeout(()=>setStage('paper'),reduced?0:1650);return()=>clearTimeout(id);}if(stage==='handoff'){setShowCheckEarly(false);const early=setTimeout(()=>setShowCheckEarly(true),reduced?0:1600);const done=setTimeout(()=>setStage('waiting'),reduced?300:2600);return()=>{clearTimeout(early);clearTimeout(done);};}if(stage==='paper'){setShowCheckEarly(false);setPaperUI(false);setPaperBurst(false);setPaperMotion('react');const id=setTimeout(()=>setPaperUI(true),reduced?0:900);return()=>clearTimeout(id);}},[stage,reduced]);
   useEffect(()=>{const steps:Partial<Record<Stage,number>>={idle:0,paper:1,handoff:2,checking:3,fix:3,pass:4,github:4,syncing:4,done:4,catalog:5};const step=steps[stage];if(step!==undefined)setTimelineStep(step);},[stage]);
   useEffect(()=>{if(stage==='idle')setIdleMotion('blink-one');else{window.clearTimeout(blinkPause.current);setLeaving(false);}if(stage==='idle'||stage==='paper')setHandoffPlayed(false);if(stage!=='paper')window.clearTimeout(paperWait.current);},[stage]);
   async function copy(value:string,next:Stage){
@@ -94,11 +95,11 @@ function App(){
             <span className="doodle-confirm-label boil-copy">选好了，复制给 AI</span>
           </button><p className="hint pop-in-late">粘贴到已连接 Paper 的 AI 对话里。</p></>}
           {stage==='paper'&&paperBurst&&<span className="paper-burst-sprite" role="img" aria-label="按钮爆炸，纸条飞出"/>}
-          {stage==='handoff'&&<p className="hint">已复制</p>}
-          {stage==='waiting'&&<><button className="doodle-confirm pop-in" onClick={()=>void request('check')} aria-label="检查一下">
+          {(stage==='waiting'||(stage==='handoff'&&showCheckEarly))&&<button className="doodle-confirm pop-in" onClick={()=>void request('check')} aria-label="检查一下">
             <img className="doodle-confirm-art boil-character" src="/mascot/start-button.png" alt="" aria-hidden="true"/>
             <span className="doodle-confirm-label boil-copy">检查一下 →</span>
-          </button><button className="text-button" onClick={()=>setStage('idle')}>稍后</button><p className="hint">检查本地文件与编译，不读取 AI 对话。</p></>}
+          </button>}
+          {stage==='waiting'&&<p className="hint">检查本地文件与编译，不读取 AI 对话。</p>}
           {stage==='checking'&&<p className="hint">正在验证代码、依赖和示例构建，请稍候。</p>}
           {stage==='fix'&&<><button className="primary" onClick={()=>void copy(`请修复 Imagine Lab 检查发现的问题，项目：${root}。\n${report?.issues?.join('\n')||fix}\n按 public/imagine/rules.md 和 schema.json 补齐交付。不要绕过检查，不要提交 GitHub。修复后提醒我回 Imagine Lab 重新检查。`,'waiting')}>告诉 AI 修一下 <span>↗</span></button><button className="text-button" onClick={()=>void request('check')}>已修好，重新检查</button></>}
           {stage==='pass'&&(report?.ok?<><button className="primary" onClick={()=>void copy(`Imagine Lab 已完成本地结构、TypeScript 与示例构建检查（检查 ID：${report?.id}）。项目：${root}。请先确认目标 GitHub 仓库、分支及本次文件清单，确认无敏感信息后，仅提交本次组件、.imagine/manifest.json 和必要依赖文件。不要上传无关修改，不要强推。返回 owner/repo、分支和 commit SHA。检查不代表视觉验收。`,'github')}>交给 AI 收尾 <span>↗</span></button><p className="hint">只检查了完整性与构建，视觉仍由你确认。</p></>:<><p className="hint">这是完成后的状态。需要先通过真实检查。</p><button className="text-button" onClick={()=>{setTimelineStep(3);setStage('waiting');}}>回到检查 →</button></>)}

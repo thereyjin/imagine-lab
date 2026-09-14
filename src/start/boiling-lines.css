@@ -109,6 +109,25 @@ footer .project-note-body .project-note-help{margin-bottom:0;color:#85877e}
 .character .doodle-confirm-art,.doodle-confirm .doodle-confirm-art{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none}
 .doodle-confirm-label{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);line-height:1;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;font-size:15px;letter-spacing:1.5px;pointer-events:none;white-space:nowrap}
 .doodle-confirm:hover .doodle-confirm-label{color:#000}
+.actions{position:relative}
+.paper-burst-sprite{position:absolute;z-index:3;left:50%;top:-54px;width:170px;height:170px;transform:translateX(-50%);background-image:url('/mascot/button-burst-sheet.png');background-size:400% 300%;background-repeat:no-repeat;pointer-events:none;animation:paper-burst-frames 1.08s step-end both}
+@keyframes paper-burst-frames{
+  0%{background-position:0 0}
+  8.333%{background-position:33.333% 0}
+  16.667%{background-position:66.667% 0}
+  25%{background-position:100% 0}
+  33.333%{background-position:0 50%}
+  41.667%{background-position:33.333% 50%}
+  50%{background-position:66.667% 50%}
+  58.333%{background-position:100% 50%}
+  66.667%{background-position:0 100%}
+  75%{background-position:33.333% 100%}
+  83.333%{background-position:66.667% 100%}
+  91.667%,100%{background-position:100% 100%}
+}
+.handoff-registered{position:absolute;left:calc(50% + 4px);top:-7px;width:148%;height:auto;max-width:none;overflow:hidden;transform:translateX(-50%) scaleY(1.052);transform-origin:50% 64.2%;pointer-events:none}
+.stage-handoff .actions,.stage-waiting .actions{min-height:126px}
+.stage-handoff .actions>.hint{visibility:hidden}
 .doodle-start{position:absolute;left:calc(100% - 12px);bottom:2px;width:116px;height:88px;padding:0;border:0;background:none;box-shadow:none;color:#202a33;isolation:isolate}
 .character .doodle-start-art{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none}
 .doodle-start-label{position:absolute;left:0;right:0;top:55%;margin-top:-12px;line-height:24px;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;font-size:18px;letter-spacing:3px;padding-left:3px;pointer-events:none}

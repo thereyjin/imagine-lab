@@ -71,3 +71,12 @@ nav{display:flex;gap:22px;align-items:center}.component-preview{width:112px;heig
 .component-tray.expanded:before{z-index:2}
 .component-tray.expanded .tray-list{position:relative;z-index:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-color:#f1efe8 transparent}
 .component-tray.expanded .tray-list::-webkit-scrollbar-thumb{background-color:#f1efe8}
+
+/* Confirm before rewinding a completed workflow step. */
+.timeline-confirm-backdrop{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:24px;background:rgba(247,246,241,.72);backdrop-filter:blur(3px)}
+.timeline-confirm{width:min(420px,100%);padding:28px;border:2px solid #222;border-radius:24px 18px 22px 20px;background:#fffefb;color:#2b2a33;text-align:left}
+.timeline-confirm h2{margin:0 0 12px;font-family:"Schoolbell","PingFang SC",sans-serif;font-size:25px;font-weight:500}
+.timeline-confirm p{margin:0;color:#77766f;font-size:14px;line-height:1.7}
+.timeline-confirm>div{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
+.timeline-confirm button{height:42px;padding:0 18px;border:1.5px solid #222;border-radius:14px 11px 15px 12px;background:#fffefb;color:#2b2a33}
+.timeline-confirm button:last-child{border-color:#2b2a33;background:#2b2a33;color:#fffefb}

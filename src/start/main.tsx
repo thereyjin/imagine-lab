@@ -2,7 +2,7 @@ import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import './style.css';
 import {BoilingLines} from './BoilingLines';
-import {Timeline} from './Timeline';
+import {Timeline,timelineSteps} from './Timeline';
 import {HandoffSprite} from './HandoffSprite';
 
 type Stage='idle'|'prepare'|'paper'|'handoff'|'waiting'|'checking'|'fix'|'pass'|'github'|'syncing'|'done'|'catalog';
@@ -54,6 +54,7 @@ function App(){
   const [selected,setSelected]=useState<string[]>([]);
   const [copiedComponentId,setCopiedComponentId]=useState<string|null>(null);
   const [trayMode,setTrayMode]=useState<'closed'|'expanded'|'minimized'>('closed');
+  const [pendingTimelineStep,setPendingTimelineStep]=useState<number|null>(null);
   const manualRef=useRef<HTMLTextAreaElement>(null);
   const active=useRef(false);
   const blinkPause=useRef<number|undefined>(undefined);
@@ -98,10 +99,19 @@ function App(){
     finally{active.current=false;}
   }
   function navigateTimeline(_id:string,index:number){
-    if(index!==5&&!(index===0&&stage==='catalog'))return;
+    if(index<timelineStep){setPendingTimelineStep(index);return;}
+    if(index!==5)return;
     setTimelineStep(index);setError('');setNotice('');setManual('');
+    setReport(catalog);setStage('catalog');
+  }
+  function confirmTimelineReturn(){
+    if(pendingTimelineStep===null)return;
+    const index=pendingTimelineStep;
+    setPendingTimelineStep(null);setTimelineStep(index);setError('');setNotice('');setManual('');setDetails(false);
     if(index===0){setStage('idle');setReport(null);}
-    else {setReport(catalog);setStage('catalog');}
+    else if(index===1){setStage('paper');setReport(null);}
+    else if(index===2||index===3){setStage('waiting');setReport(null);}
+    else setStage(report?.ok?'pass':'waiting');
   }
   const fix=report?.issues?.[0]||error||'检查未完成，请检查本地服务与 manifest。';
   const working=['prepare','checking','syncing','handoff'].includes(stage);
@@ -111,6 +121,7 @@ function App(){
   const filtered=useMemo(()=>projectComponents.filter(c=>(category==='全部'||c.category===category)&&(!query.trim()||[c.name,c.category,c.description,...(c.tags||[])].join(' ').toLowerCase().includes(query.trim().toLowerCase()))).sort((a,b)=>{if(sort==='name')return a.name.localeCompare(b.name,'zh-CN');if(sort==='recent'){const time=(value?:string|number)=>typeof value==='number'?value:Date.parse(value||'')||0;return time(b.updatedAt)-time(a.updatedAt);}return 0;}),[projectComponents,category,query,sort]);
   const selectedComponents=selected.map(id=>components.find(c=>c.componentId===id)).filter((c):c is Component=>Boolean(c));
   function toggleSelected(id:string){setSelected(items=>items.includes(id)?items.filter(item=>item!==id):[...items,id]);setTrayMode(mode=>mode==='minimized'?'minimized':'closed');}
+  function removeFromExpandedTray(id:string){setSelected(items=>items.filter(item=>item!==id));setTrayMode('expanded');}
   async function copyComponent(c:Component){const copied=await copy(`Imagine Lab Component\n\n项目：${projects.find(p=>p.id===(c.projectId||projectId))?.name||'速学慧'}\n组件：${c.name}\nComponent ID：${c.projectId||projectId}/${c.componentId}\n\nGitHub：${c.url||c.path}\n代码：component.tsx\n示例：example.tsx\n使用说明：contract.md\n\n请读取该组件的真实代码、示例和 Component Contract。保持组件的视觉语言、信息层级和核心设计特征，并根据当前项目的真实容器尺寸、屏幕尺寸和内容进行合理适配。不要机械复制 demo 尺寸。`,'catalog');if(copied)setCopiedComponentId(c.componentId)}
   return <div className={'app'+(stage==='catalog'?' catalog-mode':'')}>
     <BoilingLines/>
@@ -161,7 +172,7 @@ function App(){
         <p className="catalog-notice" role="status">{notice}</p>
         {selectedComponents.length>0&&<>
           {trayMode==='minimized'?<div className="tray-minimized right"><button className="boil-catalog" onClick={()=>setTrayMode('closed')}>组件托盘 <b>{selectedComponents.length}</b> ↗</button></div>:
-          <aside className={'component-tray'+(trayMode==='expanded'?' expanded':'')} aria-label="组件托盘"><div className="tray-summary"><strong className="boil-copy">组件托盘 <b>{selectedComponents.length}</b></strong><div className="tray-thumbs">{selectedComponents.slice(0,trayMode==='expanded'?selectedComponents.length:7).map((c,index)=><button key={c.componentId} title={c.name} onClick={()=>toggleSelected(c.componentId)}><ComponentPreview component={c} index={index}/><span><img src={`/imagine/close.svg?component=${encodeURIComponent(c.componentId)}`} alt=""/></span></button>)}{selectedComponents.length>7&&trayMode!=='expanded'&&<em>+{selectedComponents.length-7}</em>}</div><div className="tray-actions"><button className="boil-copy" onClick={()=>setTrayMode(mode=>mode==='expanded'?'closed':'expanded')}>{trayMode==='expanded'?'收起 ↓':'查看全部 ↑'}</button><button className="boil-copy" onClick={()=>setTrayMode('minimized')}>缩到角落 ↘</button></div></div>{trayMode==='expanded'&&<div className="tray-list">{selectedComponents.map((c,index)=><article key={c.componentId}><ComponentPreview component={c} index={index}/><div><h3>{c.name}</h3><p>项目：{projects.find(p=>p.id===(c.projectId||projectId))?.name||'速学慧'} · 分类：{c.category}</p></div><button className="boil-copy" onMouseLeave={()=>{if(copiedComponentId===c.componentId)setCopiedComponentId(null)}} onClick={()=>void copyComponent(c)}>{copiedComponentId===c.componentId?'已复制':'复制组件给 AI'}</button><button className="boil-copy" onClick={()=>toggleSelected(c.componentId)}>移除</button></article>)}</div>}</aside>}
+          <aside className={'component-tray'+(trayMode==='expanded'?' expanded':'')} aria-label="组件托盘"><div className="tray-summary"><strong className="boil-copy">组件托盘 <b>{selectedComponents.length}</b></strong><div className="tray-thumbs">{selectedComponents.slice(0,trayMode==='expanded'?selectedComponents.length:7).map((c,index)=><button key={c.componentId} title={c.name} onClick={()=>toggleSelected(c.componentId)}><ComponentPreview component={c} index={index}/><span><img src={`/imagine/close.svg?component=${encodeURIComponent(c.componentId)}`} alt=""/></span></button>)}{selectedComponents.length>7&&trayMode!=='expanded'&&<em>+{selectedComponents.length-7}</em>}</div><div className="tray-actions"><button className="boil-copy" onClick={()=>setTrayMode(mode=>mode==='expanded'?'closed':'expanded')}>{trayMode==='expanded'?'收起 ↓':'查看全部 ↑'}</button><button className="boil-copy" onClick={()=>setTrayMode('minimized')}>缩到角落 ↘</button></div></div>{trayMode==='expanded'&&<div className="tray-list">{selectedComponents.map((c,index)=><article key={c.componentId}><ComponentPreview component={c} index={index}/><div><h3>{c.name}</h3><p>项目：{projects.find(p=>p.id===(c.projectId||projectId))?.name||'速学慧'} · 分类：{c.category}</p></div><button className="boil-copy" onMouseLeave={()=>{if(copiedComponentId===c.componentId)setCopiedComponentId(null)}} onClick={()=>{setTrayMode('expanded');void copyComponent(c)}}>{copiedComponentId===c.componentId?'已复制':'复制组件给 AI'}</button><button className="boil-copy" onClick={()=>removeFromExpandedTray(c.componentId)}>移除</button></article>)}</div>}</aside>}
         </>}
       </section>}
       {error&&stage!=='fix'&&<p className="error" role="alert">{error}</p>}
@@ -169,6 +180,7 @@ function App(){
       {manual&&<section className="manual"><label htmlFor="manual-copy">手动复制指令</label><textarea id="manual-copy" ref={manualRef} value={manual} readOnly/><button className="primary" onClick={()=>{setManual('');setError('');setStage(pending);}}>我已复制 →</button></section>}
     </main>
     {stage!=='catalog'&&<Timeline currentStep={timelineStep} onStepChange={navigateTimeline}/>}
+    {pendingTimelineStep!==null&&<div className="timeline-confirm-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setPendingTimelineStep(null)}}><section className="timeline-confirm" role="dialog" aria-modal="true" aria-labelledby="timeline-confirm-title"><h2 id="timeline-confirm-title">返回「{timelineSteps[pendingTimelineStep].label}」？</h2><p>返回后，当前流程中尚未保存的信息会被取消。确认要返回吗？</p><div><button type="button" onClick={()=>setPendingTimelineStep(null)}>取消</button><button type="button" onClick={confirmTimelineReturn}>确认返回</button></div></section></div>}
 
   </div>;
 }

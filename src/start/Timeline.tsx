@@ -15,8 +15,10 @@ const percent=(index:number)=>index/(timelineSteps.length-1)*100;
 
 export function Timeline({currentStep,onStepChange}:Props){
   const previousStep=useRef(currentStep);
+  const railRef=useRef<HTMLDivElement>(null);
   const [hoveredStep,setHoveredStep]=useState<number|null>(null);
   const [moving,setMoving]=useState(false);
+  const [dragStep,setDragStep]=useState<number|null>(null);
 
   useEffect(()=>{
     if(previousStep.current===currentStep)return;
@@ -26,23 +28,29 @@ export function Timeline({currentStep,onStepChange}:Props){
     return()=>clearTimeout(timer);
   },[currentStep]);
 
-  const helperStep=hoveredStep??currentStep;
+  const visibleStep=dragStep??currentStep;
+  const helperStep=hoveredStep??visibleStep;
   const helper=timelineSteps[helperStep];
   const helperVisible=hoveredStep!==null||!moving;
   const helperEdge=helperStep===0?' is-first':helperStep===timelineSteps.length-1?' is-last':'';
 
   return <section className="timeline-shell" aria-label="组件整理流程">
-    <div className={`timeline-rail${moving?' is-snapping':''}`} style={{'--timeline-progress':`${percent(currentStep)}%`,'--helper-progress':`${percent(helperStep)}%`} as CSSProperties}>
+    <div ref={railRef} className={`timeline-rail${moving?' is-snapping':''}${dragStep!==null?' is-dragging':''}`} style={{'--timeline-progress':`${percent(visibleStep)}%`,'--helper-progress':`${percent(helperStep)}%`} as CSSProperties}>
       <svg className="timeline-track boil-timeline" viewBox="0 0 1000 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 20C125 18 220 22 330 20S545 18 660 20s220 2 340 0"/></svg>
+      <svg className="timeline-track timeline-track-complete boil-timeline" viewBox="0 0 1000 40" preserveAspectRatio="none" aria-hidden="true"><defs><clipPath id="timeline-complete"><rect width={percent(currentStep)*10} height="40"/></clipPath></defs><path clipPath="url(#timeline-complete)" d="M0 20C125 18 220 22 330 20S545 18 660 20s220 2 340 0"/></svg>
       <img className="timeline-arrow-end boil-timeline" src="/timeline/timeline-arrow-end.svg" alt="" aria-hidden="true"/>
       {timelineSteps.map((step,index)=>{
-        const direct=index===timelineSteps.length-1||(index===0&&currentStep===5);
-        return <button key={step.id} type="button" className={`timeline-node${index===0?' is-first':''}${index===timelineSteps.length-1?' is-last':''}${direct?' is-direct':' is-locked'}${index===currentStep?' is-current':''}`} style={{left:`${percent(index)}%`}} onClick={direct?()=>onStepChange(step.id,index):undefined} onMouseEnter={()=>setHoveredStep(index)} onMouseLeave={()=>setHoveredStep(null)} onFocus={()=>setHoveredStep(index)} onBlur={()=>setHoveredStep(null)} aria-label={direct?`打开：${step.label}`:`${step.label}：随流程自动推进`} aria-disabled={!direct} tabIndex={direct?0:-1}>
-          <img className="boil-timeline" src={direct?'/timeline/timeline-node.svg':'/timeline/timeline-node-light.svg'} alt="" aria-hidden="true"/>
+        const complete=index<currentStep;
+        const direct=complete||index===timelineSteps.length-1;
+        return <button key={step.id} type="button" className={`timeline-node${index===0?' is-first':''}${index===timelineSteps.length-1?' is-last':''}${complete?' is-complete':''}${direct?' is-direct':' is-locked'}${index===currentStep?' is-current':''}`} style={{left:`${percent(index)}%`}} onClick={direct?()=>onStepChange(step.id,index):undefined} onMouseEnter={()=>setHoveredStep(index)} onMouseLeave={()=>setHoveredStep(null)} onFocus={()=>setHoveredStep(index)} onBlur={()=>setHoveredStep(null)} aria-label={complete?`返回：${step.label}`:direct?`打开：${step.label}`:`${step.label}：随流程自动推进`} aria-disabled={!direct} tabIndex={direct?0:-1}>
+          <img className="boil-timeline" src={complete||index===timelineSteps.length-1?'/timeline/timeline-node.svg':'/timeline/timeline-node-light.svg'} alt="" aria-hidden="true"/>
           <span className="timeline-label"><span className="timeline-label-full">{step.label}</span><span className="timeline-label-short">{step.short}</span></span>
         </button>;
       })}
-      <div role="status" className="timeline-thumb" aria-label={`当前流程步骤：${timelineSteps[currentStep].label}`}>
+      <div role="slider" tabIndex={0} className="timeline-thumb" aria-label={`当前流程步骤：${timelineSteps[currentStep].label}，可向左拖动返回`} aria-valuemin={0} aria-valuemax={currentStep} aria-valuenow={visibleStep}
+        onPointerDown={event=>{event.currentTarget.setPointerCapture(event.pointerId);setDragStep(currentStep)}}
+        onPointerMove={event=>{if(dragStep===null||!railRef.current)return;const bounds=railRef.current.getBoundingClientRect();const ratio=Math.max(0,Math.min(currentStep/(timelineSteps.length-1),(event.clientX-bounds.left)/bounds.width));setDragStep(Math.round(ratio*(timelineSteps.length-1)))}}
+        onPointerUp={event=>{if(dragStep===null)return;event.currentTarget.releasePointerCapture(event.pointerId);const target=dragStep;setDragStep(null);if(target<currentStep)onStepChange(timelineSteps[target].id,target)}}>
         <img className="boil-timeline" src="/timeline/timeline-thumb.svg" alt="" aria-hidden="true"/>
       </div>
       <div className={`timeline-helper${helperEdge}${helperVisible?' is-visible':''}`} aria-live="polite"><img src="/timeline/current-helper-arrow.svg" alt="" aria-hidden="true"/><span>{helper.helper}</span></div>

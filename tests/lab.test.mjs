@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,mkdir,writeFile,symlink,rm} from 'node:fs/promises';
+import {mkdtemp,mkdir,writeFile,readFile,symlink,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
@@ -25,9 +25,10 @@ globalThis.fetch=async(url,options)=>{
  const tree=files.map(p=>{const b=readFileSync(path.join(root,p));return {path:p,type:'blob',sha:createHash('sha1').update('blob '+b.length+'\\0').update(b).digest('hex')};});
  return Response.json({truncated:false,tree});
 };`);
-  service=spawn(process.execPath,['--import',path.join(root,'mock-github.mjs'),'server/lab.mjs'],{cwd:app,env:{...process.env,PORT:'0',IMAGINE_PROJECT_ROOT:root},stdio:['ignore','pipe','pipe']});
+  service=spawn(process.execPath,['--import',path.join(root,'mock-github.mjs'),'server/lab.mjs'],{cwd:app,env:{...process.env,PORT:'0',IMAGINE_PROJECT_ROOT:root,IMAGINE_STATE_DIR:path.join(root,'.imagine-local')},stdio:['ignore','pipe','pipe']});
   const base=await new Promise((resolve,reject)=>{let log='';const timer=setTimeout(()=>reject(new Error('server timeout')),10000);service.on('error',reject);service.stdout.on('data',b=>{log+=b;const m=log.match(/http:\/\/127.0.0.1:\d+/);if(m){clearTimeout(timer);resolve(m[0]);}});});
   const call=async(p='check',data={})=>(await fetch(base+'/api/lab/'+p,{method:'POST',headers:{'X-Imagine-Request':'local','Content-Type':'application/json'},body:JSON.stringify(data)})).json();
+  const get=async p=>(await (await fetch(base+'/api/lab/'+p)).json());
   await t.test('missing manifest is not success',async()=>assert.match((await call()).error,/manifest/));
   const component={componentId:'card',name:'测试卡片',category:'展示',path:'src/components/Card',source:'fixture',status:'ready',framework:'react'};
   const manifest={schemaVersion:1,project:'test fixture',components:[component]};
@@ -39,6 +40,7 @@ globalThis.fetch=async(url,options)=>{
   await put('src/components/Card/assets/.gitkeep','');
   await t.test('valid actual TSX example builds',async()=>{const result=await call();assert.equal(result.ok,true,JSON.stringify(result));assert.equal(result.checks.length,3);});
   await t.test('matching remote fixture produces pinned catalog',async()=>{const result=await call('sync',{repo:'fixture/repo',ref:'main'});assert.equal(result.ok,true,JSON.stringify(result));assert.match(result.components[0].url,/fixture-commit/);});
+  await t.test('successful sync persists repository connection and catalog',async()=>{const connection=await get('connection');assert.equal(connection.ok,true);assert.equal(connection.connection.repo,'fixture/repo');assert.equal(connection.connection.ref,'main');const saved=JSON.parse(await readFile(path.join(root,'.imagine-local/github-state.json'),'utf8'));assert.equal(saved.catalog.commit,'fixture-commit');assert.equal(saved.connection.status,'connected');});
   await put('src/components/Card/index.tsx','export default function Card(){const value: number="wrong";return <button>{value}</button>}');
   await t.test('changed files invalidate successful checkpoint',async()=>assert.match((await call('sync',{repo:'fixture/repo',ref:'main'})).error,/本地交付已变化/));
   await t.test('type error cannot pass',async()=>assert.equal((await call()).ok,false));

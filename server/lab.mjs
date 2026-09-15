@@ -1,5 +1,5 @@
 import http from 'node:http';
-import {readFile, realpath, stat, readdir} from 'node:fs/promises';
+import {readFile, realpath, stat, readdir, mkdir, writeFile, rename} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash, randomUUID} from 'node:crypto';
@@ -8,11 +8,26 @@ import {spawn} from 'node:child_process';
 const appRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const root=await realpath(process.env.IMAGINE_PROJECT_ROOT || appRoot);
 const port=Number(process.env.PORT || 4174);
-let checked=null, busy=false, catalog=null;
+const stateDir=path.resolve(process.env.IMAGINE_STATE_DIR||path.join(appRoot,'.imagine-local'));
+const stateFile=path.join(stateDir,'github-state.json');
+let checked=null, busy=false, catalog=null, connection=null;
 const previews=new Map();
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const gitHash=b=>createHash('sha1').update(`blob ${b.length}\0`).update(b).digest('hex');
 const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
+async function loadState(){
+  try{
+    const saved=JSON.parse(await readFile(stateFile,'utf8'));
+    if(saved?.version===1&&saved.connection?.repo&&saved.connection?.ref&&saved.catalog?.ok){connection=saved.connection;catalog=saved.catalog;}
+  }catch{/* First run or an invalid local cache starts disconnected. */}
+}
+async function persistState(){
+  await mkdir(stateDir,{recursive:true});
+  const temporary=stateFile+`.tmp-${process.pid}`;
+  await writeFile(temporary,JSON.stringify({version:1,connection,catalog},null,2),{mode:0o600});
+  await rename(temporary,stateFile);
+}
+await loadState();
 async function safeFile(relative){
   if(typeof relative!=='string'||!relative||path.isAbsolute(relative)||relative.split(/[\\/]/).includes('..')) throw new Error('组件路径必须位于当前项目内');
   const p=await realpath(path.join(root,relative));
@@ -85,7 +100,10 @@ async function github(repo,ref){
     const key=preview?hash(preview):null;if(key)previews.set(key,{bytes:preview,type:types[path.extname(c.preview)]});
     return {...c,previewUrl:key?`/api/lab/preview/${key}`:undefined,url:`https://github.com/${repo}/tree/${commit.sha}/${c.path}`};
   });
-  catalog={ok:true,commit:commit.sha,url:`https://github.com/${repo}/commit/${commit.sha}`,components};return catalog;
+  const syncedAt=new Date().toISOString();
+  connection={provider:'github',repo,ref,commit:commit.sha,status:'connected',lastSuccessfulSyncAt:syncedAt,privateRead:!!process.env.IMAGINE_GITHUB_TOKEN};
+  catalog={ok:true,commit:commit.sha,url:`https://github.com/${repo}/commit/${commit.sha}`,components,syncedAt,connection:{repo,ref}};
+  await persistState();return catalog;
 }
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.json':'application/json','.md':'text/plain; charset=utf-8'};
 const server=http.createServer(async(req,res)=>{
@@ -93,7 +111,8 @@ const server=http.createServer(async(req,res)=>{
     // Local only; reject cross-origin writes and DNS rebinding.
     if(!['127.0.0.1','localhost'].includes((req.headers.host||'').split(':')[0]))return json(res,403,{error:'仅支持本地访问'});
     const url=new URL(req.url,'http://127.0.0.1');
-    if(url.pathname==='/api/lab/context')return json(res,200,{root,privateRead:!!process.env.IMAGINE_GITHUB_TOKEN});
+    if(url.pathname==='/api/lab/context')return json(res,200,{root,privateRead:!!process.env.IMAGINE_GITHUB_TOKEN,connection});
+    if(req.method==='GET'&&url.pathname==='/api/lab/connection')return json(res,200,connection?{ok:true,connection}:{ok:false,connection:null});
     if(req.method==='GET'&&url.pathname==='/api/lab/catalog')return json(res,200,catalog||{ok:false,components:[]});
     if(req.method==='GET'&&url.pathname.startsWith('/api/lab/preview/')){
       const image=previews.get(url.pathname.split('/').pop());if(!image)return json(res,404,{error:'暂无预览'});

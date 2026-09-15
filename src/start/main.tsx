@@ -8,7 +8,7 @@ import {HandoffSprite} from './HandoffSprite';
 type Stage='idle'|'prepare'|'paper'|'handoff'|'waiting'|'checking'|'fix'|'pass'|'github'|'syncing'|'done'|'catalog';
 type Component={componentId:string;name:string;category:string;path:string;source:string;url?:string;previewUrl?:string;projectId?:string;description?:string;tags?:string[];updatedAt?:string|number};
 type SortMode='default'|'recent'|'name';
-type Report={ok:boolean;issues?:string[];checks?:{name:string;ok:boolean}[];components?:Component[];commit?:string;url?:string;message?:string;id?:string};
+type Report={ok:boolean;issues?:string[];checks?:{name:string;ok:boolean}[];components?:Component[];commit?:string;url?:string;message?:string;id?:string;syncedAt?:string;connection?:{repo:string;ref:string}};
 const text:Record<Stage,string>={idle:'从设计稿整理组件？',prepare:'',paper:'先在 Paper 里选中要整理的页面。',handoff:'交给 AI 吧。',waiting:'AI 整理好了？',checking:'我看看有没有漏东西。',fix:'有一点要补齐。',pass:'都齐了。',github:'放进去了吗？',syncing:'去 GitHub 看看。',done:'看到了，已经进组件库。',catalog:'你的组件，下次接着用。'};
 const demoComponents:Component[]=[
   ['typography','Typography 排版','通用'],['grid','Grid 栅格','布局'],['layout','Layout 布局','布局'],['space','Space 间距','通用'],['button','Button 按钮','通用'],['splitter','Splitter 分隔面板','布局'],
@@ -21,6 +21,7 @@ const categoryOrder=['全部','通用','布局','导航','数据导入','数据�
 const sortOptions:{id:SortMode;label:string}[]=[{id:'default',label:'默认排序'},{id:'recent',label:'最近更新'},{id:'name',label:'名称 A–Z'}];
 function Magnifier(){return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.7"/><path d="m16 16 5 5"/></svg>}
 function StarIcon(){return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>}
+function syncTime(value?:string){if(!value)return '尚未同步';const date=new Date(value);if(Number.isNaN(date.getTime()))return '已同步';const today=new Date();const sameDay=date.toDateString()===today.toDateString();return `${sameDay?'今天':date.toLocaleDateString('zh-CN',{month:'numeric',day:'numeric'})} ${date.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false})}`;}
 function ComponentPreview({component,index}:{component:Component;index:number}){return component.previewUrl?<img className="component-preview" src={component.previewUrl} alt={component.name+' 运行预览'}/>:<div className={`component-preview component-preview-${index%9}`} aria-hidden="true"><i/><i/><i/><i/></div>}
 function saved(){try{return JSON.parse(localStorage.getItem('imagine-v1')||'{}');}catch{return {};}}
 function App(){
@@ -60,8 +61,8 @@ function App(){
   const blinkPause=useRef<number|undefined>(undefined);
   useEffect(()=>()=>{window.clearTimeout(blinkPause.current);window.clearTimeout(paperWait.current);},[]);
   useEffect(()=>{['/mascot/idle-blink-sheet.png','/mascot/idle-gesture-sheet.png','/mascot/thinking2-sheet.png','/mascot/react-sheet.png','/mascot/peace-sheet.png','/mascot/button-burst-sheet.png','/mascot/handoff-character-sheet-v8.png'].forEach(src=>{const image=new Image();image.src=src;});},[]);
-  useEffect(()=>{fetch('/api/lab/catalog').then(r=>r.json()).then(d=>{if(d.ok)setCatalog(d);}).catch(()=>{});},[]);
-  useEffect(()=>{fetch('/api/lab/context').then(r=>r.json()).then(d=>setRoot(d.root||'')).catch(()=>{});const q=matchMedia('(prefers-reduced-motion: reduce)');setReduced(q.matches);const change=()=>setReduced(q.matches);q.addEventListener('change',change);return()=>q.removeEventListener('change',change);},[]);
+  useEffect(()=>{fetch('/api/lab/catalog').then(r=>r.json()).then(d=>{if(d.ok){setCatalog(d);if(d.connection?.repo)setRepo(d.connection.repo);if(d.connection?.ref)setBranch(d.connection.ref);}}).catch(()=>{});},[]);
+  useEffect(()=>{fetch('/api/lab/context').then(r=>r.json()).then(d=>{setRoot(d.root||'');if(d.connection?.repo)setRepo(d.connection.repo);if(d.connection?.ref)setBranch(d.connection.ref);}).catch(()=>{});const q=matchMedia('(prefers-reduced-motion: reduce)');setReduced(q.matches);const change=()=>setReduced(q.matches);q.addEventListener('change',change);return()=>q.removeEventListener('change',change);},[]);
   useEffect(()=>{try{localStorage.setItem('imagine-v1',JSON.stringify({repo,branch}));}catch{/* Optional storage. */}},[stage,repo,branch]);
   useEffect(()=>{if(stage==='prepare'){const id=setTimeout(()=>setStage('paper'),reduced?0:1650);return()=>clearTimeout(id);}if(stage==='handoff'){setShowCheckEarly(false);const early=setTimeout(()=>setShowCheckEarly(true),reduced?0:1600);const done=setTimeout(()=>setStage('waiting'),reduced?300:2600);return()=>{clearTimeout(early);clearTimeout(done);};}if(stage==='paper'){setShowCheckEarly(false);setPaperUI(false);setPaperBurst(false);setPaperMotion('react');const id=setTimeout(()=>setPaperUI(true),reduced?0:900);return()=>clearTimeout(id);}},[stage,reduced]);
   useEffect(()=>{const steps:Partial<Record<Stage,number>>={idle:0,paper:1,handoff:2,checking:3,fix:3,pass:4,github:4,syncing:4,done:4,catalog:5};const step=steps[stage];if(step!==undefined)setTimelineStep(step);},[stage]);
@@ -158,7 +159,7 @@ function App(){
         </div>
       </>}
       {stage==='catalog'&&<section className="catalog" aria-label="组件库">
-        <div className="catalog-heading"><h1 className="boil-copy"><span className="catalog-title-cn">Imagine Lab的官方组件</span></h1><div className="sync-status boil-catalog"><i/> 已同步 <span/> 今天 14:32</div></div>
+        <div className="catalog-heading"><h1 className="boil-copy"><span className="catalog-title-cn">Imagine Lab的官方组件</span></h1><div className="sync-status boil-catalog" title={catalog?.connection?`${catalog.connection.repo} · ${catalog.connection.ref}`:undefined}><i/> {catalog?.syncedAt?'已同步':'本地目录'} <span/> {syncTime(catalog?.syncedAt)}</div></div>
         <div className="catalog-controls">
           <div className="project-switcher"><button className="project-trigger" aria-expanded={projectMenu} onClick={()=>setProjectMenu(open=>!open)}>{projects.find(p=>p.id===projectId)?.name}<img className="control-chevron" src={projectMenu?'/imagine/chevron-up.svg':'/imagine/chevron-down.svg'} alt=""/></button>{projectMenu&&<div className="project-dropdown" role="menu">{projects.map(p=><button key={p.id} className={p.id===projectId?'active':''} onClick={()=>{setProjectId(p.id);setProjectMenu(false)}}><span>{p.id===projectId?'✓':''}</span>{p.name}</button>)}<hr/><button><span>＋</span>新建项目</button></div>}</div>
           <label className="catalog-search"><Magnifier/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="搜索组件、用途、页面……"/></label>

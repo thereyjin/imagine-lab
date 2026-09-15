@@ -11,6 +11,7 @@ const presets = [
   {id:'character', scale:3.2},
   {id:'scene', scale:1.8},
   {id:'timeline', scale:1.5},
+  {id:'catalog', scale:1.35},
 ] as const;
 
 export function BoilingLines(){

@@ -7,6 +7,7 @@
 .boil-character{filter:url('#imagine-boil-character')}
 .boil-scene{filter:url('#imagine-boil-scene')}
 .boil-timeline{filter:url('#imagine-boil-timeline')}
+.boil-catalog{filter:url('#imagine-boil-catalog')}
 .brand .brand-wordmark{display:inline-block;color:inherit}
 .speech .boil-copy{display:inline-block}
 header{justify-content:flex-end}
@@ -145,5 +146,5 @@ footer .project-note-body .project-note-help{margin-bottom:0;color:#85877e}
 /* Keep functional surfaces physically stationary, including hover/press. */
 .actions .primary:hover,.actions .primary:active{transform:none;box-shadow:0 2px 0 #353d2e}
 @media(prefers-reduced-motion:reduce){
-  .boil-logo,.boil-copy,.boil-slogan,.boil-character,.boil-scene,.boil-timeline{filter:none}
+  .boil-logo,.boil-copy,.boil-slogan,.boil-character,.boil-scene,.boil-timeline,.boil-catalog{filter:none}
 }

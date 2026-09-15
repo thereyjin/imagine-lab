@@ -19,10 +19,12 @@ test('local checker: real structure, dependency, compilation and security failur
 const root=process.env.IMAGINE_PROJECT_ROOT;const original=globalThis.fetch;
 globalThis.fetch=async(url,options)=>{
  if(!String(url).startsWith('https://api.github.com/repos/fixture/repo/'))return original(url,options);
- if(String(url).includes('/commits/'))return Response.json({sha:'fixture-commit',commit:{tree:{sha:'fixture-tree'}}});
  const files=['.imagine/manifest.json','package.json','tsconfig.json'];
  const walk=p=>{for(const e of readdirSync(path.join(root,p),{withFileTypes:true})){const next=p+'/'+e.name;e.isDirectory()?walk(next):files.push(next);}};walk('src/components');
- const tree=files.map(p=>{const b=readFileSync(path.join(root,p));return {path:p,type:'blob',sha:createHash('sha1').update('blob '+b.length+'\\0').update(b).digest('hex')};});
+ const sha=p=>{const b=readFileSync(path.join(root,p));return createHash('sha1').update('blob '+b.length+'\\0').update(b).digest('hex')};
+ if(String(url).includes('/commits/'))return Response.json({sha:'fixture-commit',commit:{tree:{sha:'fixture-tree'}}});
+ if(String(url).includes('/git/blobs/')){const wanted=String(url).split('/').pop();const file=files.find(p=>sha(p)===wanted);return file?Response.json({encoding:'base64',content:readFileSync(path.join(root,file)).toString('base64')}):new Response('',{status:404});}
+ const tree=files.map(p=>({path:p,type:'blob',sha:sha(p)}));
  return Response.json({truncated:false,tree});
 };`);
   service=spawn(process.execPath,['--import',path.join(root,'mock-github.mjs'),'server/lab.mjs'],{cwd:app,env:{...process.env,PORT:'0',IMAGINE_PROJECT_ROOT:root,IMAGINE_STATE_DIR:path.join(root,'.imagine-local')},stdio:['ignore','pipe','pipe']});
@@ -38,6 +40,7 @@ globalThis.fetch=async(url,options)=>{
   await put('src/components/Card/index.tsx','export default function Card(){return <button>测试</button>}');
   await put('src/components/Card/example.tsx',"import Card from './index'; export default function Example(){return <Card/>}");
   await put('src/components/Card/assets/.gitkeep','');
+  await t.test('connect indexes a remote manifest without a local checkpoint',async()=>{const result=await call('connect',{repo:'fixture/repo',ref:'main'});assert.equal(result.ok,true,JSON.stringify(result));assert.equal(result.components[0].componentId,'card');assert.match(result.components[0].url,/fixture-commit/);});
   await t.test('valid actual TSX example builds',async()=>{const result=await call();assert.equal(result.ok,true,JSON.stringify(result));assert.equal(result.checks.length,3);});
   await t.test('matching remote fixture produces pinned catalog',async()=>{const result=await call('sync',{repo:'fixture/repo',ref:'main'});assert.equal(result.ok,true,JSON.stringify(result));assert.match(result.components[0].url,/fixture-commit/);});
   await t.test('successful sync persists repository connection and catalog',async()=>{const connection=await get('connection');assert.equal(connection.ok,true);assert.equal(connection.connection.repo,'fixture/repo');assert.equal(connection.connection.ref,'main');const saved=JSON.parse(await readFile(path.join(root,'.imagine-local/github-state.json'),'utf8'));assert.equal(saved.catalog.commit,'fixture-commit');assert.equal(saved.connection.status,'connected');});

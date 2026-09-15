@@ -90,12 +90,12 @@ function App(){
     try{await clipboard;setManual('');setNotice('已复制');}
     catch{setStage('paper');setPaperBurst(false);setManual(value);setPending('handoff');setError('自动复制未成功，选中下方文字手动复制。');requestAnimationFrame(()=>{manualRef.current?.focus();manualRef.current?.select();});}
   }
-  async function request(kind:'check'|'sync'){
+  async function request(kind:'check'|'sync'|'connect'){
     if(active.current)return;active.current=true;setError('');setDetails(false);setStage(kind==='check'?'checking':'syncing');
     try{
       const response=await fetch('/api/lab/'+kind,{method:'POST',headers:{'Content-Type':'application/json','X-Imagine-Request':'local'},body:JSON.stringify({repo,ref:branch})});
       const data=await response.json();if(!response.ok)throw new Error(data.error||'服务暂时不可用');
-      setReport(data);if(kind==='sync'&&data.ok)setCatalog(data);setStage(kind==='check'?(data.ok?'pass':'fix'):(data.ok?'done':'github'));if(kind==='sync'&&!data.ok)setError(data.message);
+      setReport(data);if(kind!=='check'&&data.ok)setCatalog(data);setStage(kind==='check'?(data.ok?'pass':'fix'):(data.ok?'done':'github'));if(kind!=='check'&&!data.ok)setError(data.message);
     }catch(e){setError(e instanceof Error?e.message:'无法连接本地检查服务');setStage(kind==='check'?'fix':'github');if(kind==='check')setReport(null);}
     finally{active.current=false;}
   }
@@ -154,7 +154,7 @@ function App(){
           {stage==='checking'&&<p className="hint">正在验证代码、依赖和示例构建，请稍候。</p>}
           {stage==='fix'&&<><button className="primary" onClick={()=>void copy(`请修复 Imagine Lab 检查发现的问题，项目：${root}。\n${report?.issues?.join('\n')||fix}\n按 public/imagine/rules.md 和 schema.json 补齐交付。不要绕过检查，不要提交 GitHub。修复后提醒我回 Imagine Lab 重新检查。`,'waiting')}>告诉 AI 修一下 <span>↗</span></button><button className="text-button" onClick={()=>void request('check')}>已修好，重新检查</button></>}
           {stage==='pass'&&(report?.ok?<><button className="primary" onClick={()=>void copy(`Imagine Lab 已完成本地结构、TypeScript 与示例构建检查（检查 ID：${report?.id}）。项目：${root}。请先确认目标 GitHub 仓库、分支及本次文件清单，确认无敏感信息后，仅提交本次组件、.imagine/manifest.json 和必要依赖文件。不要上传无关修改，不要强推。返回 owner/repo、分支和 commit SHA。检查不代表视觉验收。`,'github')}>交给 AI 收尾 <span>↗</span></button><p className="hint">只检查了完整性与构建，视觉仍由你确认。</p></>:<><p className="hint">这是完成后的状态。需要先通过真实检查。</p><button className="text-button" onClick={()=>{setTimelineStep(3);setStage('waiting');}}>回到检查 →</button></>)}
-          {stage==='github'&&<form onSubmit={e=>{e.preventDefault();void request('sync');}}><label>GitHub 仓库<input required value={repo} onChange={e=>setRepo(e.target.value.trim())} placeholder="owner/repo" autoComplete="off"/></label><label>分支<input required value={branch} onChange={e=>setBranch(e.target.value)} placeholder="AI 刚提交的分支" autoComplete="off"/></label><button className="primary" type="submit">看看有没有回来 <span>↙</span></button><p className="hint">只读 GitHub，核对本次交付的文件内容。</p><button type="button" className="text-button" onClick={()=>void request('check')}>重新检查本地交付</button></form>}
+          {stage==='github'&&<form onSubmit={e=>{e.preventDefault();void request('sync');}}><label>GitHub 仓库<input required value={repo} onChange={e=>setRepo(e.target.value.trim())} placeholder="owner/repo" autoComplete="off"/></label><label>分支<input required value={branch} onChange={e=>setBranch(e.target.value)} placeholder="main 或组件分支" autoComplete="off"/></label><button className="primary" type="submit">核对本次交付 <span>↙</span></button><p className="hint">严格核对本地检查通过的文件与远端固定 commit。</p><button type="button" className="text-button" onClick={()=>void request('connect')}>连接已有组件仓库</button><p className="hint">直接读取仓库中的 .imagine/manifest.json，不要求当前进程已有本地检查点。</p><button type="button" className="text-button" onClick={()=>void request('check')}>重新检查本地交付</button></form>}
           {stage==='done'&&<><button className="primary" onClick={()=>setStage('catalog')}>看看组件 <span>→</span></button><a className="text-button" href={report?.url} target="_blank" rel="noreferrer">提交 {report?.commit?.slice(0,7)} ↗</a></>}
         </div>
       </>}

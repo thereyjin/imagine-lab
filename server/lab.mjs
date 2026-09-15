@@ -79,20 +79,57 @@ async function check(){
   checked={id:randomUUID(),manifest,files,at:new Date().toISOString()};
   return {ok:true,checks,issues:[],id:checked.id,components:manifest.components,at:checked.at};
 }
-async function github(repo,ref){
+const validRepoRef=(repo,ref)=>{
   if(!/^[\w.-]+\/[\w.-]+$/.test(repo)||typeof ref!=='string'||!ref.trim()||ref.length>200)throw new Error('请填写 owner/repo 和分支名。');
+};
+async function githubApi(repo,suffix){
+  const response=await fetch(`https://api.github.com/repos/${repo}/${suffix}`,{headers:{Accept:'application/vnd.github+json',...(process.env.IMAGINE_GITHUB_TOKEN?{Authorization:`Bearer ${process.env.IMAGINE_GITHUB_TOKEN}`}:{})},signal:AbortSignal.timeout(20000)});
+  if(!response.ok)throw new Error(response.status===404?'仓库、分支或文件不可见。私有仓库需在本地服务配置只读 Token。':response.status===403||response.status===429?'GitHub 权限不足或请求限流，请稍后再试。':`GitHub 读取失败（${response.status}）`);
+  return response.json();
+}
+async function githubSnapshot(repo,ref){
+  validRepoRef(repo,ref);
+  const commit=await githubApi(repo,'commits/'+encodeURIComponent(ref));
+  const tree=await githubApi(repo,`git/trees/${commit.commit.tree.sha}?recursive=1`);
+  if(tree.truncated)throw new Error('仓库目录过大，GitHub 未返回完整目录，请缩小组件清单范围。');
+  return {commit,tree,blobs:new Map(tree.tree.filter(e=>e.type==='blob').map(e=>[e.path,e.sha]))};
+}
+async function githubBlob(repo,sha){
+  const blob=await githubApi(repo,'git/blobs/'+encodeURIComponent(sha));
+  if(blob.encoding!=='base64'||typeof blob.content!=='string')throw new Error('GitHub 返回了无法识别的文件内容。');
+  return Buffer.from(blob.content.replace(/\s/g,''),'base64');
+}
+async function connectGithub(repo,ref){
+  const {commit,blobs}=await githubSnapshot(repo,ref);
+  const manifestSha=blobs.get('.imagine/manifest.json');
+  if(!manifestSha)throw new Error('仓库中没有找到 .imagine/manifest.json。');
+  let manifest;try{manifest=JSON.parse((await githubBlob(repo,manifestSha)).toString('utf8'));}catch{throw new Error('仓库中的 .imagine/manifest.json 无效。');}
+  if(manifest.schemaVersion!==1||typeof manifest.project!=='string'||!manifest.project.trim()||!Array.isArray(manifest.components)||!manifest.components.length||manifest.components.length>100)throw new Error('远端 manifest 需要 schemaVersion: 1、project 和非空 components 数组（最多 100 项）。');
+  const ids=new Set(),issues=[];
+  for(const c of manifest.components){
+    if(!c||!['componentId','name','path','framework','source','status','category'].every(k=>typeof c[k]==='string'&&c[k].trim())||!/^src\/components\/[\w/-]+$/.test(c.path)||c.framework!=='react'||c.status!=='ready'||ids.has(c.componentId)){issues.push('组件字段、路径、状态或 ID 不符合规则。');continue;}
+    ids.add(c.componentId);
+    for(const name of ['index.tsx','example.tsx','README.md'])if(!blobs.has(`${c.path}/${name}`))issues.push(`${c.name} 缺少 ${name}。`);
+    if(c.preview!==undefined&&(!/^assets\/[\w./-]+\.(png|jpg|webp)$/.test(c.preview)||c.preview.includes('..')||!blobs.has(`${c.path}/${c.preview}`)))issues.push(`${c.name} 预览图不存在或路径无效。`);
+  }
+  if(issues.length)throw new Error(issues.slice(0,5).join('\n'));
+  const components=[];
+  for(const c of manifest.components){
+    let previewUrl;
+    if(c.preview){const preview=await githubBlob(repo,blobs.get(`${c.path}/${c.preview}`));const key=hash(preview);previews.set(key,{bytes:preview,type:types[path.extname(c.preview)]});previewUrl=`/api/lab/preview/${key}`;}
+    components.push({...c,previewUrl,url:`https://github.com/${repo}/tree/${commit.sha}/${c.path}`});
+  }
+  const syncedAt=new Date().toISOString();
+  connection={provider:'github',repo,ref,commit:commit.sha,status:'connected',lastSuccessfulSyncAt:syncedAt,privateRead:!!process.env.IMAGINE_GITHUB_TOKEN};
+  catalog={ok:true,commit:commit.sha,url:`https://github.com/${repo}/commit/${commit.sha}`,components,syncedAt,connection:{repo,ref}};
+  await persistState();return catalog;
+}
+async function github(repo,ref){
+  validRepoRef(repo,ref);
   if(!checked)throw new Error('请先完成本地检查。服务重启后需重新检查。');
   const local=await inspect();
   if(local.issues.length||local.files.size!==checked.files.size||[...checked.files].some(([p,b])=>!local.files.has(p)||hash(b)!==hash(local.files.get(p)))){checked=null;throw new Error('本地交付已变化，请先重新检查。');}
-  const api=async suffix=>{
-    const response=await fetch(`https://api.github.com/repos/${repo}/${suffix}`,{headers:{Accept:'application/vnd.github+json',...(process.env.IMAGINE_GITHUB_TOKEN?{Authorization:`Bearer ${process.env.IMAGINE_GITHUB_TOKEN}`}:{})},signal:AbortSignal.timeout(20000)});
-    if(!response.ok)throw new Error(response.status===404?'仓库或分支不可见。私有仓库需在本地服务配置只读 Token。':response.status===403||response.status===429?'GitHub 权限不足或请求限流，请稍后再试。':`GitHub 读取失败（${response.status}）`);
-    return response.json();
-  };
-  const commit=await api('commits/'+encodeURIComponent(ref));
-  const tree=await api(`git/trees/${commit.commit.tree.sha}?recursive=1`);
-  if(tree.truncated)throw new Error('仓库目录过大，尚不支持完整验证。');
-  const blobs=new Map(tree.tree.filter(e=>e.type==='blob').map(e=>[e.path,e.sha]));
+  const {commit,blobs}=await githubSnapshot(repo,ref);
   const mismatch=[...checked.files].filter(([p,b])=>blobs.get(p)!==gitHash(b)).map(([p])=>p);
   if(mismatch.length)return {ok:false,message:`还没看到本次交付：${mismatch[0]} 尚未同步。`,commit:commit.sha};
   const components=checked.manifest.components.map(c=>{
@@ -122,7 +159,7 @@ const server=http.createServer(async(req,res)=>{
       if(req.method!=='POST'||req.headers['x-imagine-request']!=='local'||(req.headers.origin&&!['http://127.0.0.1:4174','http://localhost:4174','http://localhost:5173','http://127.0.0.1:5173'].includes(req.headers.origin)))return json(res,403,{error:'请求来源不允许'});
       let body='';for await(const chunk of req){body+=chunk;if(body.length>4096)return json(res,413,{error:'请求过大'});}
       if(busy)return json(res,409,{error:'正在检查，请稍候。'});busy=true;
-      try {const data=JSON.parse(body||'{}');if(url.pathname==='/api/lab/check')return json(res,200,await check());if(url.pathname==='/api/lab/sync')return json(res,200,await github(data.repo,data.ref));return json(res,404,{error:'未知操作'});}finally{busy=false;}
+      try {const data=JSON.parse(body||'{}');if(url.pathname==='/api/lab/check')return json(res,200,await check());if(url.pathname==='/api/lab/connect')return json(res,200,await connectGithub(data.repo,data.ref));if(url.pathname==='/api/lab/sync')return json(res,200,await github(data.repo,data.ref));return json(res,404,{error:'未知操作'});}finally{busy=false;}
     }
     if(req.method!=='GET')return json(res,405,{error:'不支持此方法'});
     let p=url.pathname==='/'?'index.html':decodeURIComponent(url.pathname).replace(/^\//,'');

@@ -1,0 +1,37 @@
+/* The delivery states share the same stage and ground plane. */
+.delivery-mascot,.delivery-transition{position:absolute;left:calc(50% + 8px);bottom:-12px;width:100%;height:auto;aspect-ratio:1/1;transform:translateX(-50%);display:block;pointer-events:none;z-index:1}
+.delivery-pose{position:absolute;inset:0;background-image:url('/mascot/delivery-atlas-v3.png');background-size:300% 200%;background-repeat:no-repeat;opacity:0;transition:opacity .18s ease}
+.delivery-pose.is-visible{opacity:1}
+.delivery-transition-frame{position:absolute;inset:0;background-image:url('/mascot/handoff-to-waiting-v2.png');background-size:300% 200%;background-repeat:no-repeat}
+.delivery-waiting-pose{position:absolute;inset:0;background-image:url('/mascot/reading-loop-v2.png');background-size:400% 200%;background-position:0 0;background-repeat:no-repeat;transform:translate(-9.8%,.2%) scale(.894);transform-origin:50% 50%;animation:delivery-reading-frames 6.4s step-end infinite}
+.delivery-waiting{transform-origin:50% 95%}
+.delivery-done{animation:delivery-nod .65s ease-out 1}
+.scene.stage-waiting .actions,.scene.stage-handoff .actions{height:auto;min-height:120px;padding-top:20px}
+.stage-pass .primary,.stage-fix .primary,.stage-done .primary{background:#b9d9ff;color:#2b2a33;border:2px solid #2b2a33;box-shadow:none;border-radius:46% 9% 44% 9% / 12% 48% 12% 44%;text-decoration:none;gap:8px;min-height:49px;font-size:16px}
+.stage-pass .primary:hover,.stage-fix .primary:hover,.stage-done .primary:hover{background:#a9cfff}
+.delivery-secondary{display:flex;gap:24px;align-items:center;justify-content:center}
+.source-caption{margin:0;color:#91918b;font-size:12px;line-height:1.6;max-width:100%;overflow-wrap:anywhere}
+.live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#7399cb;margin-right:9px;vertical-align:middle;animation:delivery-pulse 2s ease-in-out infinite}
+.waiting-bubbles{position:absolute;inset:0;z-index:0;pointer-events:none;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}
+.waiting-bubble{position:absolute;display:block;width:max-content;max-width:170px;padding:7px 12px;border:0;border-radius:999px;background:#fffefb;color:#272925;font-size:11px;line-height:1.35;box-shadow:0 4px 14px rgba(39,41,37,.1);opacity:0;will-change:transform,opacity;animation:waiting-bubble-rise 9s var(--bubble-delay,0s) linear infinite}
+.waiting-bubble-1{left:-92px;top:132px;--bubble-delay:0s}
+.waiting-bubble-2{right:-118px;top:116px;--bubble-delay:1.8s}
+.waiting-bubble-3{left:-132px;top:88px;--bubble-delay:3.6s}
+.waiting-bubble-4{right:-138px;top:68px;--bubble-delay:5.4s}
+.waiting-bubble-5{left:-72px;top:48px;--bubble-delay:7.2s}
+.waiting-check-button{position:relative;display:inline-flex;height:40px;align-items:center;justify-content:center;gap:7px;padding:0 4px;border:0;background:transparent;color:#202326}
+.waiting-check-icon{width:30px;height:30px;flex:0 0 auto;pointer-events:none}
+.waiting-check-label{position:relative;display:inline-flex;align-items:center;justify-content:center;font-size:20px;letter-spacing:.03em;white-space:nowrap;pointer-events:none}
+.waiting-check-button:hover{transform:translateY(-1px)}
+.waiting-check-button:active{transform:translateY(1px)}
+.waiting-check-button:focus-visible{outline:2px dashed #536b87;outline-offset:3px;border-radius:30px}
+.fix-summary{max-width:460px;margin:0;color:#6f716a;font-size:13px;line-height:1.7}
+.workspace-settings{top:28px;padding:0;max-width:calc(100vw - 48px)}
+.workspace-settings>button{font-size:12px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.workspace-settings form{position:absolute;top:30px;left:0;width:330px;max-width:calc(100vw - 48px);box-shadow:0 8px 30px #2729250b}
+@keyframes delivery-nod{40%{transform:translateX(-50%) translateY(3px) rotate(2deg)}75%{transform:translateX(-50%) translateY(-2px)}100%{transform:translateX(-50%)}}
+@keyframes delivery-reading-frames{0%,12.4%{background-position:0 0}12.5%,20.7%{background-position:33.333% 0}20.8%,27.5%{background-position:66.667% 0}27.6%,29.6%{background-position:100% 0}29.7%,37.8%{background-position:0 100%}37.9%,46.1%{background-position:33.333% 100%}46.2%,55%{background-position:66.667% 100%}55.1%,100%{background-position:100% 100%}}
+@keyframes delivery-pulse{50%{opacity:.35}}
+@keyframes waiting-bubble-rise{0%,100%{opacity:0;transform:translateY(0) scale(.96)}3%{opacity:1;transform:translateY(-5px) scale(1)}8%{opacity:1;transform:translateY(-15px) scale(1)}17%{opacity:1;transform:translateY(-42px) scale(1)}25%{opacity:0;transform:translateY(-72px) scale(1)}25.1%,100%{opacity:0;transform:translateY(-72px) scale(1)}}
+@media(max-width:680px){.stage-pass .actions,.stage-fix .actions,.stage-checking .actions{padding-top:24px}.workspace-settings{top:18px}.delivery-secondary{gap:18px}.stage-pass .primary{font-size:14px}}
+@media(prefers-reduced-motion:reduce){.delivery-mascot,.delivery-transition,.delivery-pose,.delivery-waiting-pose,.live-dot,.waiting-bubble{animation:none!important;transition:none!important}.delivery-waiting-pose{background-position:0 0}.waiting-bubble{opacity:1}.waiting-bubble-1{transform:translateY(-34px)}.waiting-bubble-2{transform:translateY(-28px)}.waiting-bubble:nth-child(n+3){display:none}}

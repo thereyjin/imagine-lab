@@ -4,9 +4,8 @@ import './timeline.css';
 export const timelineSteps=[
   {id:'start',label:'开始',short:'开始',helper:'进入整理流程'},
   {id:'select-page',label:'选中页面',short:'选中',helper:'在 Paper 里选中页面'},
-  {id:'handoff-ai',label:'交给 AI',short:'AI',helper:'复制这句话给 AI'},
-  {id:'check',label:'检查一下',short:'检查',helper:'检查代码和资源是否齐全'},
-  {id:'ready',label:'可以用了',short:'完成',helper:'组件已整理完成'},
+  {id:'handoff-ai',label:'交给 AI',short:'AI',helper:'整理组件并自动检查'},
+  {id:'ready',label:'发布 GitHub',short:'发布',helper:'验收预览后发布并核对'},
   {id:'find-components',label:'找组件',short:'找组件',helper:'去组件库里快速查找'},
 ] as const;
 

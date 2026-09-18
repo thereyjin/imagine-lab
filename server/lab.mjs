@@ -4,13 +4,15 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash, randomUUID} from 'node:crypto';
 import {spawn} from 'node:child_process';
+import {deliveryTask} from './delivery-task.mjs';
 
 const appRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const root=await realpath(process.env.IMAGINE_PROJECT_ROOT || appRoot);
+let root=await realpath(process.env.IMAGINE_PROJECT_ROOT || appRoot);
 const port=Number(process.env.PORT || 4174);
 const stateDir=path.resolve(process.env.IMAGINE_STATE_DIR||path.join(appRoot,'.imagine-local'));
 const stateFile=path.join(stateDir,'github-state.json');
 let checked=null, busy=false, catalog=null, connection=null;
+let workspace=null;
 const previews=new Map();
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const gitHash=b=>createHash('sha1').update(`blob ${b.length}\0`).update(b).digest('hex');
@@ -28,6 +30,17 @@ async function persistState(){
   await rename(temporary,stateFile);
 }
 await loadState();
+try{workspace=JSON.parse(await readFile(path.join(stateDir,'workspace.json'),'utf8'));root=await realpath(workspace.root);}catch{workspace=null;}
+async function bindWorkspace(data){
+  validRepoRef(data.repo,data.ref);
+  if(typeof data.root!=='string'||!path.isAbsolute(data.root))throw new Error('请输入本地仓库的绝对路径。');
+  const directory=await realpath(data.root);
+  const remote=await new Promise((resolve,reject)=>{const child=spawn('git',['-C',directory,'remote','get-url','origin']);let out='';child.stdout.on('data',b=>out+=b);child.on('error',reject);child.on('close',code=>code?reject(new Error('该目录不是配置了 origin 的 Git 仓库。')):resolve(out.trim()));});
+  if(![ `https://github.com/${data.repo}`,`https://github.com/${data.repo}.git`,`git@github.com:${data.repo}.git`].includes(remote))throw new Error('本地 origin 与填写的 GitHub 仓库不一致。');
+  const next={root:directory,repo:data.repo,ref:data.ref};
+  await mkdir(stateDir,{recursive:true});await writeFile(path.join(stateDir,'workspace.json.tmp'),JSON.stringify(next),{mode:0o600});await rename(path.join(stateDir,'workspace.json.tmp'),path.join(stateDir,'workspace.json'));
+  workspace=next;root=directory;checked=null;return {ok:true,...workspace};
+}
 async function safeFile(relative){
   if(typeof relative!=='string'||!relative||path.isAbsolute(relative)||relative.split(/[\\/]/).includes('..')) throw new Error('组件路径必须位于当前项目内');
   const p=await realpath(path.join(root,relative));
@@ -59,9 +72,12 @@ async function inspect(){
   for(const p of ['package.json','tsconfig.json'])try{await read(p);}catch{issues.push(`缺少 ${p}。`);}
   return {manifest,issues,files};
 }
-async function check(){
+async function check(taskId){
   checked=null;
+  const task=taskId?await deliveryTask(root,taskId):null;
+  if(task&&task.status!=='ready')throw new Error('本次任务尚未交付完成，正在等 AI 写完。');
   const {manifest,issues,files}=await inspect();
+  if(task&&task.components.some(id=>!manifest.components.some(c=>c.componentId===id)))issues.push('本次任务的组件尚未全部写入 manifest。');
   const checks=[{name:'代码与交付结构',ok:!issues.length}];
   if(issues.length)return {ok:false,issues,checks};
   const output=await new Promise((resolve,reject)=>{
@@ -72,16 +88,23 @@ async function check(){
   });
   const events=output.text.trim().split('\n').flatMap(l=>{try{return [JSON.parse(l)];}catch{return [];}});
   checks.push({name:'TypeScript 与依赖',ok:events.some(e=>e.phase==='types')},{name:'示例构建与资源引用',ok:output.code===0});
-  if(output.code!==0)return {ok:false,checks,issues:[events.find(e=>e.phase==='failure')?.message || '检查未完成或超过 90 秒，请在 AI 中查看编译结果。']};
+  if(output.code!==0)return {ok:false,root,checks,diagnostics:events.find(e=>e.phase==='failure')?.diagnostics||[],fingerprints:Object.fromEntries([...files].map(([p,b])=>[p,hash(b)])),issues:[events.find(e=>e.phase==='failure')?.message || '检查未完成或超过 90 秒，请在 AI 中查看编译结果。']};
   // Don't certify stale files changed during compilation.
   const fresh=await inspect();
   if(fresh.issues.length||[...files].some(([p,b])=>!fresh.files.has(p)||hash(b)!==hash(fresh.files.get(p)))||fresh.files.size!==files.size)throw new Error('检查期间文件有变化，请重新检查。');
-  checked={id:randomUUID(),manifest,files,at:new Date().toISOString()};
-  return {ok:true,checks,issues:[],id:checked.id,components:manifest.components,at:checked.at};
+  if(task&&task.revision!==(await deliveryTask(root,taskId)).revision)throw new Error('检查期间任务已更新，请重新检查。');
+  checked={id:randomUUID(),manifest,files,at:new Date().toISOString(),taskId,revision:task?.revision};
+  return {ok:true,checks,issues:[],id:checked.id,components:manifest.components,at:checked.at,taskId,revision:task?.revision,previewUrl:task?.previewUrl};
 }
 const validRepoRef=(repo,ref)=>{
   if(!/^[\w.-]+\/[\w.-]+$/.test(repo)||typeof ref!=='string'||!ref.trim()||ref.length>200)throw new Error('请填写 owner/repo 和分支名。');
 };
+async function publishIntent(id){
+  if(!checked||checked.id!==id)throw new Error('检查结果已过期，请重新检查后查看效果。');
+  const local=await inspect();
+  if(local.issues.length||local.files.size!==checked.files.size||[...checked.files].some(([p,b])=>!local.files.has(p)||hash(b)!==hash(local.files.get(p)))){checked=null;throw new Error('代码已更新，重新检查后再看一下效果。');}
+  return {ok:true,id};
+}
 async function githubApi(repo,suffix){
   const response=await fetch(`https://api.github.com/repos/${repo}/${suffix}`,{headers:{Accept:'application/vnd.github+json',...(process.env.IMAGINE_GITHUB_TOKEN?{Authorization:`Bearer ${process.env.IMAGINE_GITHUB_TOKEN}`}:{})},signal:AbortSignal.timeout(20000)});
   if(!response.ok)throw new Error(response.status===404?'仓库、分支或文件不可见。私有仓库需在本地服务配置只读 Token。':response.status===403||response.status===429?'GitHub 权限不足或请求限流，请稍后再试。':`GitHub 读取失败（${response.status}）`);
@@ -148,7 +171,8 @@ const server=http.createServer(async(req,res)=>{
     // Local only; reject cross-origin writes and DNS rebinding.
     if(!['127.0.0.1','localhost'].includes((req.headers.host||'').split(':')[0]))return json(res,403,{error:'仅支持本地访问'});
     const url=new URL(req.url,'http://127.0.0.1');
-    if(url.pathname==='/api/lab/context')return json(res,200,{root,privateRead:!!process.env.IMAGINE_GITHUB_TOKEN,connection});
+    if(url.pathname==='/api/lab/context')return json(res,200,{root,workspace,privateRead:!!process.env.IMAGINE_GITHUB_TOKEN,connection});
+    if(req.method==='GET'&&url.pathname==='/api/lab/task')return json(res,200,await deliveryTask(root,url.searchParams.get('id')));
     if(req.method==='GET'&&url.pathname==='/api/lab/connection')return json(res,200,connection?{ok:true,connection}:{ok:false,connection:null});
     if(req.method==='GET'&&url.pathname==='/api/lab/catalog')return json(res,200,catalog||{ok:false,components:[]});
     if(req.method==='GET'&&url.pathname.startsWith('/api/lab/preview/')){
@@ -156,10 +180,10 @@ const server=http.createServer(async(req,res)=>{
       res.writeHead(200,{'Content-Type':image.type,'X-Content-Type-Options':'nosniff'});res.end(image.bytes);return;
     }
     if(url.pathname.startsWith('/api/lab/')){
-      if(req.method!=='POST'||req.headers['x-imagine-request']!=='local'||(req.headers.origin&&!['http://127.0.0.1:4174','http://localhost:4174','http://localhost:5173','http://127.0.0.1:5173'].includes(req.headers.origin)))return json(res,403,{error:'请求来源不允许'});
+      if(req.method!=='POST'||req.headers['x-imagine-request']!=='local'||(req.headers.origin&&!['http://127.0.0.1:4174','http://localhost:4174','http://127.0.0.1:4175','http://localhost:4175','http://localhost:5173','http://127.0.0.1:5173'].includes(req.headers.origin)))return json(res,403,{error:'请求来源不允许'});
       let body='';for await(const chunk of req){body+=chunk;if(body.length>4096)return json(res,413,{error:'请求过大'});}
       if(busy)return json(res,409,{error:'正在检查，请稍候。'});busy=true;
-      try {const data=JSON.parse(body||'{}');if(url.pathname==='/api/lab/check')return json(res,200,await check());if(url.pathname==='/api/lab/connect')return json(res,200,await connectGithub(data.repo,data.ref));if(url.pathname==='/api/lab/sync')return json(res,200,await github(data.repo,data.ref));return json(res,404,{error:'未知操作'});}finally{busy=false;}
+      try {const data=JSON.parse(body||'{}');if(url.pathname==='/api/lab/workspace')return json(res,200,await bindWorkspace(data));if(url.pathname==='/api/lab/check')return json(res,200,await check(data.taskId));if(url.pathname==='/api/lab/publish-intent')return json(res,200,await publishIntent(data.id));if(url.pathname==='/api/lab/connect')return json(res,200,await connectGithub(data.repo,data.ref));if(url.pathname==='/api/lab/sync')return json(res,200,await github(data.repo,data.ref));return json(res,404,{error:'未知操作'});}finally{busy=false;}
     }
     if(req.method!=='GET')return json(res,405,{error:'不支持此方法'});
     let p=url.pathname==='/'?'index.html':decodeURIComponent(url.pathname).replace(/^\//,'');

@@ -80,3 +80,4 @@ nav{display:flex;gap:22px;align-items:center}.component-preview{width:112px;heig
 .timeline-confirm>div{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
 .timeline-confirm button{height:42px;padding:0 18px;border:1.5px solid #222;border-radius:14px 11px 15px 12px;background:#fffefb;color:#2b2a33}
 .timeline-confirm button:last-child{border-color:#2b2a33;background:#2b2a33;color:#fffefb}
+.workspace-settings{position:absolute;top:16px;left:5vw;z-index:10;padding:16px 24px;max-width:min(600px,90vw)}.workspace-settings form{padding:20px;background:#fffefb;border:1px solid #2b2a33;border-radius:16px}.workspace-settings label{display:block;margin-bottom:12px}.workspace-settings input{width:100%}.visual-approval{display:flex;align-items:center;gap:8px;font-size:14px}.visual-approval input{width:auto;margin:0}.primary:disabled{opacity:.45;cursor:not-allowed}

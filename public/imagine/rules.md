@@ -4,7 +4,7 @@ Imagine Lab 只提供规则、确定性检查和 GitHub 只读目录，不提供
 
 ## 读取与确认
 先通过 Paper MCP 读取操作说明、当前选择、完整节点树、JSX、computed styles、截图和资源。连接不可用时明确说明，不假装读取。
-按独立用途和复用价值给出简短组件清单，等待用户确认。不要为凑数量拆分零碎图层；确有五个可复用组件才实现五个。相同结构以 props/variant 表达。
+按独立用途和复用价值给出简短组件清单，来源明确时直接继续实现。只有画板选择或业务行为不明确才集中询问；不重复确认已给出的范围。不要为凑数量拆分零碎图层；确有五个可复用组件才实现五个。相同结构以 props/variant 表达。
 能读取的信息不重复询问。不明确的业务行为、图标用途和响应式规则集中询问。未确定的交互不能假称实现。
 
 ## 原稿保护与实现
@@ -38,7 +38,10 @@ README 必须包含「用途」「Props」「依赖」「限制」「示例」�
 manifest 只登记实际完成的组件。不要修改 Imagine Lab 源码来绕过检查。
 
 ## 交接与 GitHub
+收到带任务编号的指令后，在 `.imagine/task-<taskId>.json` 中记录 `taskId`、`source: {file, artboard, nodeId}`、`components`、`revision` 和 `previewUrl`。开始写入前将 `status` 设为 `writing`；完成代码、构建和运行预览后，最后原子更新为 `ready`。每次修改增加字符串形式的 `revision`。预览必须为可访问的本机 HTTP 地址。Imagine Lab 只会自动检查当前任务的 ready 记录；旧组件或未写完的记录不会触发成功。
+
 先在 Imagine Lab 完成本地结构、TypeScript、example 构建检查；失败按实际错误修复再检查。
 未经用户确认仓库、分支和范围，不创建仓库、commit 或 push。检查通过不代表获得全仓库上传授权。不上传 token、.env、node_modules 或无关文件。
 用户授权后由宿主 AI 提交本次 manifest、组件、必要依赖和文档，返回 owner/repo、分支、commit SHA。
+用户点击「效果可以，发布到 GitHub」复制的任务已包含指定仓库、分支和本次组件的发布授权，不再索要相同确认。若实际发布范围超出授权，则说明具体差异。点击复制不等于发布，用户仍需把任务粘贴到 AI 聊天中。
 Imagine Lab 只读验证远端固定 commit 下文件哈希与本次本地交付一致后收录，不代替 Git 客户端。

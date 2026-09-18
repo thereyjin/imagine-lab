@@ -44,5 +44,5 @@ try{
   process.stdout.write(JSON.stringify({phase:'types',ok:true})+'\n');
   await build({root,configFile:false,envFile:false,logLevel:'silent',publicDir:false,build:{write:false,lib:{entry:entries.map(p=>path.join(root,p)),formats:['es']},rollupOptions:{external:['react','react-dom','react/jsx-runtime']}}});
   process.stdout.write(JSON.stringify({phase:'build',ok:true})+'\n');
-}catch(error){process.stdout.write(JSON.stringify({phase:'failure',message:String(error.message).slice(0,2400)})+'\n');process.exitCode=1;}
+}catch(error){const message=String(error.message).slice(0,2400);const diagnostics=message.split('\n').filter(Boolean).map(message=>{const m=message.match(/^(.*?)\((\d+),(\d+)\): error (TS\d+): (.*)$/);return m?{file:path.relative(root,path.resolve(root,m[1])),line:Number(m[2]),column:Number(m[3]),code:m[4],message:m[5]}:{message};});process.stdout.write(JSON.stringify({phase:'failure',message,diagnostics})+'\n');process.exitCode=1;}
 finally{if(temp)rmSync(temp,{recursive:true,force:true});}

@@ -41,12 +41,15 @@ globalThis.fetch=async(url,options)=>{
   await put('src/components/Card/example.tsx',"import Card from './index'; export default function Example(){return <Card/>}");
   await put('src/components/Card/assets/.gitkeep','');
   await t.test('connect indexes a remote manifest without a local checkpoint',async()=>{const result=await call('connect',{repo:'fixture/repo',ref:'main'});assert.equal(result.ok,true,JSON.stringify(result));assert.equal(result.components[0].componentId,'card');assert.match(result.components[0].url,/fixture-commit/);});
-  await t.test('valid actual TSX example builds',async()=>{const result=await call();assert.equal(result.ok,true,JSON.stringify(result));assert.equal(result.checks.length,3);});
+  let successfulCheckId='';
+  await t.test('valid actual TSX example builds',async()=>{const result=await call();assert.equal(result.ok,true,JSON.stringify(result));assert.equal(result.checks.length,3);successfulCheckId=result.id;});
+  await t.test('publish intent is bound to the exact successful check',async()=>{assert.match((await call('publish-intent',{id:'wrong-check'})).error,/检查/);const result=await call('publish-intent',{id:successfulCheckId});assert.equal(result.ok,true,JSON.stringify(result));});
   await t.test('matching remote fixture produces pinned catalog',async()=>{const result=await call('sync',{repo:'fixture/repo',ref:'main'});assert.equal(result.ok,true,JSON.stringify(result));assert.match(result.components[0].url,/fixture-commit/);});
   await t.test('successful sync persists repository connection and catalog',async()=>{const connection=await get('connection');assert.equal(connection.ok,true);assert.equal(connection.connection.repo,'fixture/repo');assert.equal(connection.connection.ref,'main');const saved=JSON.parse(await readFile(path.join(root,'.imagine-local/github-state.json'),'utf8'));assert.equal(saved.catalog.commit,'fixture-commit');assert.equal(saved.connection.status,'connected');});
   await put('src/components/Card/index.tsx','export default function Card(){const value: number="wrong";return <button>{value}</button>}');
   await t.test('changed files invalidate successful checkpoint',async()=>assert.match((await call('sync',{repo:'fixture/repo',ref:'main'})).error,/本地交付已变化/));
-  await t.test('type error cannot pass',async()=>assert.equal((await call()).ok,false));
+  await t.test('type error includes actionable location and fingerprint',async()=>{const result=await call();assert.equal(result.ok,false);assert.ok(result.diagnostics.some(d=>d.code==='TS2322'&&d.line>0&&d.file.endsWith('index.tsx')));assert.ok(result.fingerprints['src/components/Card/index.tsx']);});
+  await t.test('workspace binding rejects a directory without matching git remote',async()=>{const result=await call('workspace',{root,repo:'fixture/repo',ref:'main'});assert.match(result.error,/origin/);});
   await put('src/components/Card/index.tsx','export default function Card(){return <img src="./missing.png"/>}');
   await t.test('missing literal resource cannot pass',async()=>assert.match((await call()).issues.join(' '),/资源不存在/));
   await put('src/components/Card/index.tsx',"import {Plus} from 'lucide-react';export default function Card(){return <Plus/>}");
